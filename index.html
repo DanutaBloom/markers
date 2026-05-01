@@ -1,0 +1,1560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Copic Sketch</title>
+<script>
+  // Set theme before any rendering to prevent flash.
+  // Order: stored preference → system preference → light fallback.
+  (function() {
+    try {
+      var stored = localStorage.getItem('copic-theme');
+      var theme;
+      if (stored === 'light' || stored === 'dark') {
+        theme = stored;
+      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        theme = 'dark';
+      } else {
+        theme = 'light';
+      }
+      document.documentElement.setAttribute('data-theme', theme);
+    } catch(e) {
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+  })();
+</script>
+<style>
+  :root {
+    --s-1: 4px;   --s-2: 8px;   --s-3: 12px;  --s-4: 16px;
+    --s-5: 24px;  --s-6: 32px;  --s-7: 48px;  --s-8: 64px;  --s-9: 96px;
+    --r-1: 4px;   --r-2: 8px;   --r-3: 12px;  --r-4: 16px;
+    --r-5: 20px;  --r-full: 999px;
+    --fs-xs: 11px;  --fs-sm: 12px;  --fs-md: 14px;  --fs-lg: 16px;
+    --fs-xl: 20px;  --fs-2xl: 28px; --fs-3xl: 48px;
+    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --font-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+    --font-serif: ui-serif, Georgia, 'Times New Roman', serif;
+    --ease: cubic-bezier(0.32, 0.72, 0, 1);
+    --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+    --dur-fast: 0.2s;
+    --dur: 0.3s;
+  }
+
+  :root[data-theme="light"] {
+    --bg: #faf9f5;
+    --bg-elevated: #ffffff;
+    --bg-subtle: #f4f2eb;
+    --text: #141413;
+    --text-muted: #5a5854;
+    --text-soft: #8a8780;
+    --border: rgba(20, 20, 19, 0.08);
+    --border-strong: rgba(20, 20, 19, 0.16);
+    --accent: #d97757;
+    --accent-soft: rgba(217, 119, 87, 0.12);
+    --owned: #788c5d;
+    --missing: #b8642f;
+    --ink: #141413;
+    --shadow-1: 0 1px 2px rgba(20, 20, 19, 0.04), 0 8px 24px rgba(20, 20, 19, 0.04);
+    --shadow-2: 0 1px 2px rgba(20, 20, 19, 0.06), 0 12px 32px rgba(20, 20, 19, 0.06);
+    --toolbar-bg: rgba(250, 249, 245, 0.72);
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #141413;
+    --bg-elevated: #1c1c1a;
+    --bg-subtle: #232321;
+    --text: #faf9f5;
+    --text-muted: #b0aea5;
+    --text-soft: #7a7872;
+    --border: rgba(250, 249, 245, 0.08);
+    --border-strong: rgba(250, 249, 245, 0.18);
+    --accent: #e89074;
+    --accent-soft: rgba(232, 144, 116, 0.16);
+    --owned: #9eb47a;
+    --missing: #d29260;
+    --ink: #faf9f5;
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.3);
+    --shadow-2: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 32px rgba(0, 0, 0, 0.4);
+    --toolbar-bg: rgba(20, 20, 19, 0.72);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: auto; }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--bg);
+    color: var(--text);
+    padding: var(--s-5) var(--s-6) var(--s-8);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-text-size-adjust: 100%;
+    overscroll-behavior-y: none;
+    transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+  }
+
+  .container { max-width: 1200px; margin: 0 auto; }
+
+  /* ═══════ Sticky toolbar ═══════ */
+  .toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    margin: 0 calc(-1 * var(--s-6)) var(--s-6);
+    padding: var(--s-2) var(--s-6);
+    background: var(--toolbar-bg);
+    backdrop-filter: saturate(140%) blur(12px);
+    -webkit-backdrop-filter: saturate(140%) blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  /* Disable backdrop blur on mobile - it's a major perf hit on iOS */
+  @media (max-width: 700px) {
+    .toolbar {
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      background: var(--bg);
+    }
+  }
+  .toolbar-row {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    justify-content: flex-end;
+  }
+  .toolbar-divider {
+    width: 1px;
+    height: 18px;
+    background: var(--border-strong);
+    margin: 0 6px;
+    flex-shrink: 0;
+  }
+
+  /* Ghost icon-button */
+  .ghost-btn {
+    width: 36px;
+    height: 36px;
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid transparent;
+    border-radius: var(--r-2);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .ghost-btn svg { width: 16px; height: 16px; }
+  .ghost-btn:hover {
+    background: var(--bg-subtle);
+    color: var(--text);
+  }
+  .ghost-btn:active { transform: scale(0.94); }
+  .ghost-btn[aria-pressed="true"] {
+    background: var(--ink);
+    color: var(--bg);
+  }
+  .ghost-btn[aria-pressed="true"]:hover {
+    background: var(--ink);
+    opacity: 0.88;
+  }
+  .visually-hidden {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0,0,0,0);
+    white-space: nowrap; border: 0;
+  }
+
+  /* Search wrap: button + expanding field */
+  .search-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-right: auto;
+  }
+  .search-wrap[data-open="true"] #searchToggle { display: none; }
+  .search-wrap .search-field {
+    display: none;
+    position: relative;
+    width: 320px;
+  }
+  .search-wrap[data-open="true"] .search-field { display: block; }
+  .search-field input {
+    width: 100%;
+    background: var(--bg-elevated);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--r-full);
+    padding: 8px 36px 8px 38px;
+    font-family: var(--font-sans);
+    font-size: var(--fs-sm);
+    transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+    height: 36px;
+  }
+  .search-field input:focus {
+    outline: none;
+    border-color: var(--border-strong);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .search-field input::placeholder { color: var(--text-soft); }
+  .search-field input::-webkit-search-cancel-button { -webkit-appearance: none; }
+  .search-field .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    color: var(--text-soft);
+    pointer-events: none;
+  }
+  .search-field .clear-search {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--bg-subtle);
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    width: 22px;
+    height: 22px;
+    border-radius: var(--r-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+  }
+  .search-field .clear-search:hover {
+    background: var(--border-strong);
+    color: var(--text);
+  }
+
+  /* ═══════ Filter dimming (compositor-only, no filter property) ═══════ */
+  body[data-filter="owned"] .mini.missing,
+  body[data-filter="owned"] .swatch.missing,
+  body[data-filter="missing"] .mini.owned,
+  body[data-filter="missing"] .swatch.owned {
+    opacity: 0.18;
+    pointer-events: none;
+  }
+  :root[data-theme="dark"] body[data-filter="owned"] .mini.missing,
+  :root[data-theme="dark"] body[data-filter="owned"] .swatch.missing,
+  :root[data-theme="dark"] body[data-filter="missing"] .mini.owned,
+  :root[data-theme="dark"] body[data-filter="missing"] .swatch.owned {
+    opacity: 0.22;
+  }
+
+  /* ═══════ Search highlighting (avoid filter property) ═══════ */
+  body.searching .mini:not(.match),
+  body.searching .swatch:not(.match) {
+    opacity: 0.15;
+    pointer-events: none;
+  }
+  body.searching .mini.match,
+  body.searching .swatch.match {
+    box-shadow: 0 0 0 2px var(--accent);
+    z-index: 4;
+  }
+
+  /* ═══════ Carousel ═══════ */
+  .carousel-section {
+    margin: 0 0 var(--s-7);
+    overflow: hidden;
+  }
+  .carousel-header {
+    display: flex;
+    align-items: center;
+    gap: var(--s-4);
+    margin-bottom: var(--s-5);
+  }
+  .arrow-btn {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--r-full);
+    background: var(--bg-elevated);
+    color: var(--text);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s var(--ease), border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+  }
+  .arrow-btn svg { width: 16px; height: 16px; stroke-width: 2.25; }
+  .arrow-btn:hover {
+    border-color: var(--border-strong);
+    background: var(--bg-subtle);
+  }
+  .arrow-btn:active { transform: scale(0.92); }
+  .carousel-title {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .carousel-title h2 {
+    font-size: var(--fs-2xl);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    color: var(--text);
+  }
+  .carousel-progress {
+    height: 3px;
+    background: var(--bg-subtle);
+    border-radius: var(--r-full);
+    overflow: hidden;
+    max-width: 280px;
+  }
+  .carousel-progress-fill {
+    height: 100%;
+    background: var(--owned);
+    border-radius: var(--r-full);
+    transition: width 0.5s var(--ease-spring);
+  }
+  .carousel-meta {
+    flex-shrink: 0;
+    font-family: var(--font-mono);
+    font-size: var(--fs-md);
+    color: var(--text-muted);
+    font-feature-settings: "tnum";
+    letter-spacing: -0.02em;
+  }
+  .carousel-meta strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+  .carousel-track {
+    display: flex;
+    transition: transform 0.35s var(--ease-spring);
+  }
+  .carousel-slide {
+    flex: 0 0 100%;
+    min-width: 0;
+    padding: 4px;
+  }
+  .carousel-slide:not(.active) {
+    pointer-events: none;
+    /* Hint to browser that off-screen slides don't need painting */
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 600px;
+  }
+  .carousel-slide.active { pointer-events: auto; }
+
+  /* Filter pills (in carousel header) */
+  .filter-group {
+    display: inline-flex;
+    background: var(--bg-subtle);
+    padding: 3px;
+    border-radius: var(--r-full);
+    border: 1px solid var(--border);
+    gap: 2px;
+    height: 32px;
+    flex-shrink: 0;
+  }
+  .filter-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 12px;
+    height: 24px;
+    background: transparent;
+    color: var(--text-muted);
+    border: none;
+    border-radius: var(--r-full);
+    font-family: var(--font-sans);
+    font-size: var(--fs-xs);
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s var(--ease), color 0.2s var(--ease);
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .filter-pill:hover { color: var(--text); }
+  .filter-pill.active {
+    background: var(--bg-elevated);
+    color: var(--text);
+    box-shadow: 0 1px 2px rgba(20, 20, 19, 0.08);
+    font-weight: 600;
+  }
+  :root[data-theme="dark"] .filter-pill.active {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  }
+
+  /* Family navigation chips */
+  .family-nav {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    margin: 0 calc(-1 * var(--s-6)) var(--s-4);
+    padding: 0 var(--s-6) var(--s-3);
+    border-bottom: 1px solid var(--border);
+    -webkit-overflow-scrolling: touch;
+  }
+  .family-nav::-webkit-scrollbar { display: none; }
+  .chip {
+    flex-shrink: 0;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    padding: 0 10px;
+    height: 28px;
+    border-radius: 7px;
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    font-weight: 500;
+    cursor: pointer;
+    transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+    letter-spacing: -0.02em;
+    display: inline-flex;
+    align-items: center;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .chip:hover {
+    background: var(--bg-subtle);
+    color: var(--text);
+  }
+  .chip.active {
+    background: var(--ink);
+    color: var(--bg);
+    font-weight: 600;
+  }
+  .chip-divider {
+    flex-shrink: 0;
+    width: 1px;
+    height: 16px;
+    background: var(--border-strong);
+    margin: 0 6px;
+  }
+
+  /* ═══════ Spectrum strip ═══════ */
+  .spectrum-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+    gap: 3px;
+  }
+  .mini {
+    aspect-ratio: 1 / 1;
+    border-radius: 5px;
+    position: relative;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-sans);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    transition: transform 0.2s var(--ease-spring), opacity 0.2s var(--ease);
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04);
+  }
+  /* Hover only on devices that actually support it */
+  @media (hover: hover) {
+    .mini:hover {
+      transform: scale(1.18);
+      z-index: 5;
+      box-shadow: 0 6px 16px rgba(20, 20, 19, 0.2), inset 0 0 0 1px rgba(0,0,0,0.08);
+    }
+    :root[data-theme="dark"] .mini:hover {
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255,255,255,0.08);
+    }
+    .mini:hover .mini-label { opacity: 1; }
+  }
+  .mini:active { transform: scale(0.95); }
+  .mini:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 3px;
+    z-index: 6;
+  }
+  .mini.owned {
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
+  }
+  .mini.owned::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06);
+    pointer-events: none;
+  }
+  .mini-label {
+    line-height: 1;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.25);
+    opacity: 0;
+    transition: opacity var(--dur) var(--ease);
+  }
+  body.show-codes .mini-label { opacity: 1; }
+
+  /* ═══════ Family grid (swatches) ═══════ */
+  .family-slide { padding: 4px; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+    gap: 6px;
+  }
+  .swatch {
+    padding: 10px var(--s-3);
+    border-radius: 8px;
+    position: relative;
+    aspect-ratio: 1.4 / 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    transition: transform 0.2s var(--ease-spring), opacity 0.2s var(--ease);
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04);
+  }
+  @media (hover: hover) {
+    .swatch:hover {
+      transform: translateY(-2px) scale(1.02);
+      z-index: 2;
+      box-shadow: 0 8px 24px rgba(20, 20, 19, 0.15), inset 0 0 0 1px rgba(0,0,0,0.06);
+    }
+    :root[data-theme="dark"] .swatch:hover {
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255,255,255,0.06);
+    }
+  }
+  .swatch:active { transform: scale(0.97); }
+  .swatch:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 3px;
+  }
+  .swatch.owned {
+    clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
+  }
+  .swatch.owned::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06);
+    pointer-events: none;
+  }
+  .swatch-code {
+    font-family: var(--font-mono);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .swatch-name {
+    font-size: 10px;
+    font-weight: 500;
+    line-height: 1.25;
+    margin-top: auto;
+    opacity: 0.85;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  /* ═══════ Empty state ═══════ */
+  .empty-state {
+    display: none;
+    padding: var(--s-7) var(--s-4);
+    text-align: center;
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
+    line-height: 1.6;
+  }
+  .empty-state strong {
+    color: var(--text);
+    font-weight: 600;
+    display: block;
+    margin-bottom: 4px;
+  }
+  body.empty-active .carousel-track { display: none; }
+  body.empty-active .empty-state { display: block; }
+
+  /* ═══════ Toast ═══════ */
+  .toast {
+    position: fixed;
+    bottom: var(--s-5);
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--ink);
+    color: var(--bg);
+    padding: 10px 16px;
+    border-radius: var(--r-full);
+    font-family: var(--font-sans);
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    box-shadow: var(--shadow-2);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s var(--ease), transform 0.25s var(--ease-spring), bottom var(--dur) var(--ease);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    white-space: nowrap;
+    max-width: calc(100vw - 32px);
+  }
+  .toast.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  .toast .toast-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: var(--r-full);
+    background: var(--owned);
+    flex-shrink: 0;
+  }
+  .toast.removed .toast-dot { background: var(--missing); }
+  .toast .toast-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  body.has-scroll-top .toast { bottom: calc(var(--s-5) + 56px); }
+
+  /* ═══════ Scroll-to-top ═══════ */
+  .scroll-top {
+    position: fixed;
+    bottom: var(--s-5);
+    right: var(--s-5);
+    width: 40px;
+    height: 40px;
+    border-radius: var(--r-full);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-1);
+    opacity: 0;
+    transform: translateY(20px);
+    pointer-events: none;
+    transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease-spring);
+    z-index: 90;
+  }
+  .scroll-top.visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  .scroll-top:hover {
+    border-color: var(--border-strong);
+    transform: translateY(-2px);
+  }
+  .scroll-top svg { width: 16px; height: 16px; stroke-width: 2.25; }
+
+  /* ═══════ Footer ═══════ */
+  footer {
+    margin-top: var(--s-7);
+    padding-top: var(--s-5);
+    border-top: 1px solid var(--border);
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: var(--fs-xs);
+    color: var(--text-soft);
+    line-height: 1.6;
+    text-align: center;
+  }
+
+  @media (max-width: 700px) {
+    body { padding: var(--s-4) var(--s-4) var(--s-7); }
+    .mini-label { opacity: 1; }
+    .toolbar {
+      margin: 0 calc(-1 * var(--s-4)) var(--s-5);
+      padding: var(--s-2) var(--s-4);
+    }
+    .search-wrap[data-open="true"] {
+      position: absolute;
+      left: var(--s-4);
+      right: var(--s-4);
+      background: var(--toolbar-bg);
+    }
+    .search-wrap[data-open="true"] .search-field { width: 100%; }
+    .family-nav {
+      margin: 0 calc(-1 * var(--s-4)) var(--s-4);
+      padding: 0 var(--s-4) var(--s-3);
+    }
+    .carousel-header {
+      flex-wrap: wrap;
+      row-gap: var(--s-3);
+    }
+    .filter-group {
+      order: 10;
+      flex: 1 1 100%;
+      justify-content: center;
+    }
+    .carousel-meta { font-size: var(--fs-sm); }
+    .carousel-title h2 { font-size: var(--fs-xl); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+    }
+  }
+  @media print {
+    body { padding: var(--s-4); background: white; color: black; }
+    .toolbar, .scroll-top, .toast { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<nav class="toolbar" aria-label="Controls">
+  <div class="toolbar-row">
+    <div class="search-wrap" id="searchWrap">
+      <button class="ghost-btn" id="searchToggle" aria-label="Search" title="Search (/)" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <div class="search-field">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="search" id="searchInput" placeholder="Search…" autocomplete="off" spellcheck="false">
+        <button class="clear-search" id="clearSearch" aria-label="Close search" tabindex="-1">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+    <button class="ghost-btn" id="codeToggle" aria-label="Show codes" title="Show codes (c)" aria-pressed="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+    </button>
+    <span class="toolbar-divider" aria-hidden="true"></span>
+    <button class="ghost-btn" id="importBtn" aria-label="Import" title="Import">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    </button>
+    <button class="ghost-btn" id="exportBtn" aria-label="Export" title="Export">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    </button>
+    <button class="ghost-btn" id="resetBtn" aria-label="Clear" title="Clear">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+    </button>
+    <button class="ghost-btn" id="themeToggle" aria-label="Theme" title="Theme">
+      <span id="themeIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>
+      <span id="themeLabel" class="visually-hidden">Dark</span>
+    </button>
+    <input type="file" id="importFile" accept=".txt,.json" style="display: none;">
+  </div>
+</nav>
+
+<section class="carousel-section" id="carousel-section">
+  <div class="carousel-header">
+    <button class="arrow-btn" id="prevFamily" aria-label="Previous">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="carousel-title">
+      <h2 id="carouselTitle">All</h2>
+      <div class="carousel-progress" aria-hidden="true">
+        <div class="carousel-progress-fill" id="carouselProgressFill" style="width: 0%"></div>
+      </div>
+    </div>
+    <div class="filter-group" role="group" aria-label="Filter">
+      <button class="filter-pill active" data-filter="all">All</button>
+      <button class="filter-pill" data-filter="owned">Owned</button>
+      <button class="filter-pill" data-filter="missing">Missing</button>
+    </div>
+    <div class="carousel-meta" id="carouselMeta">0 / 358</div>
+    <button class="arrow-btn" id="nextFamily" aria-label="Next">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+  </div>
+  <div class="family-nav" aria-label="Jump to family">
+    <button class="chip" data-jump="spectrum">All</button>
+    <span class="chip-divider" aria-hidden="true"></span>
+    <button class="chip" data-jump="family-Y">Y</button>
+    <button class="chip" data-jump="family-YG">YG</button>
+    <button class="chip" data-jump="family-G">G</button>
+    <button class="chip" data-jump="family-BG">BG</button>
+    <button class="chip" data-jump="family-B">B</button>
+    <button class="chip" data-jump="family-BV">BV</button>
+    <button class="chip" data-jump="family-V">V</button>
+    <button class="chip" data-jump="family-RV">RV</button>
+    <button class="chip" data-jump="family-R">R</button>
+    <button class="chip" data-jump="family-YR">YR</button>
+    <button class="chip" data-jump="family-E">E</button>
+    <span class="chip-divider" aria-hidden="true"></span>
+    <button class="chip" data-jump="family-C">C</button>
+    <button class="chip" data-jump="family-N">N</button>
+    <button class="chip" data-jump="family-T">T</button>
+    <button class="chip" data-jump="family-W">W</button>
+    <span class="chip-divider" aria-hidden="true"></span>
+    <button class="chip" data-jump="family-Achromatic">0/100</button>
+    <button class="chip" data-jump="family-F">F</button>
+  </div>
+  <div class="carousel-track" id="carouselTrack">
+    <div class="carousel-slide" id="spectrum" data-family="spectrum" data-family-name="All">
+      <div class="spectrum-strip" id="spectrumStrip"></div>
+    </div>
+  </div>
+  <div class="empty-state" id="emptyState">
+    <strong>Nothing to show</strong>
+    <span id="emptyStateText">No colors match your filter.</span>
+  </div>
+</section>
+
+<footer>
+  Hex values are approximations from public Copic references and will differ on paper versus screen.
+</footer>
+
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite">
+  <span class="toast-dot"></span>
+  <span class="toast-text"></span>
+</div>
+
+<button class="scroll-top" id="scrollTop" aria-label="Scroll to top">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
+</button>
+
+<script>
+  const FAMILIES = [
+    { code: 'Y',  name: 'Yellow' },
+    { code: 'YG', name: 'Yellow Green' },
+    { code: 'G',  name: 'Green' },
+    { code: 'BG', name: 'Blue Green' },
+    { code: 'B',  name: 'Blue' },
+    { code: 'BV', name: 'Blue Violet' },
+    { code: 'V',  name: 'Violet' },
+    { code: 'RV', name: 'Red Violet' },
+    { code: 'R',  name: 'Red' },
+    { code: 'YR', name: 'Yellow Red / Orange' },
+    { code: 'E',  name: 'Earth / Skin / Brown' },
+    { code: 'C',  name: 'Cool Gray' },
+    { code: 'N',  name: 'Neutral Gray' },
+    { code: 'T',  name: 'Toner Gray' },
+    { code: 'W',  name: 'Warm Gray' },
+    { code: 'Achromatic', name: 'Blender / Black' },
+    { code: 'F',  name: 'Fluorescent' }
+  ];
+
+  const COLORS = [
+    ['Y','Y0000','Yellow Fluorite','#FFFEF7'],['Y','Y000','Pale Lemon','#FFFCE5'],['Y','Y00','Barium Yellow','#FFFBCC'],
+    ['Y','Y02','Canary Yellow','#FFF59C'],['Y','Y04','Acacia','#FFF06C'],['Y','Y06','Yellow','#FFE651'],
+    ['Y','Y08','Acid Yellow','#FFE838'],['Y','Y11','Pale Yellow','#FFFCD1'],['Y','Y13','Lemon Yellow','#FEF4A0'],
+    ['Y','Y15','Cadmium Yellow','#FEEB6B'],['Y','Y17','Golden Yellow','#FFE02B'],['Y','Y18','Lightning Yellow','#FFEF47'],
+    ['Y','Y19','Napoli Yellow','#FFD836'],['Y','Y21','Buttercup Yellow','#FCE8A8'],['Y','Y23','Yellowish Beige','#F8E4B1'],
+    ['Y','Y26','Mustard','#EFC95C'],['Y','Y28','Lionet Gold','#C69C4E'],['Y','Y32','Cashmere','#F5DDB5'],
+    ['Y','Y35','Maize','#F6CE6D'],['Y','Y38','Honey','#E8B962'],
+    ['YG','YG0000','Lily White','#F4F8E6'],['YG','YG00','Mimosa Yellow','#EDF0B0'],['YG','YG01','Green Bice','#E6F0B2'],
+    ['YG','YG03','Yellow Green','#DFEB9B'],['YG','YG05','Salad','#D1E48B'],['YG','YG06','Yellowish Green','#C1D879'],
+    ['YG','YG07','Acid Green','#B9D86A'],['YG','YG09','Lettuce Green','#B5D35B'],['YG','YG11','Mignonette','#E2EBAB'],
+    ['YG','YG13','Chartreuse','#DAE87F'],['YG','YG17','Grass Green','#9FC13F'],['YG','YG21','Anise','#FBF8C2'],
+    ['YG','YG23','New Leaf','#E5E88A'],['YG','YG25','Celadon Green','#C7D874'],['YG','YG41','Pale Cobalt Green','#D8E8C8'],
+    ['YG','YG45','Cobalt Green','#B1CE9E'],['YG','YG61','Pale Moss','#C6D4A4'],['YG','YG63','Pea Green','#B8C988'],
+    ['YG','YG67','Moss','#86A96A'],['YG','YG91','Putty','#D4D7A8'],['YG','YG93','Grayish Yellow','#D0CE91'],
+    ['YG','YG95','Pale Olive','#BEBA7E'],['YG','YG97','Spanish Olive','#A2A060'],['YG','YG99','Marine Green','#696E3E'],
+    ['G','G0000','Crystal Opal','#F6FAF6'],['G','G000','Pale Green','#E5F3E0'],['G','G00','Jade Green','#C8E5C5'],
+    ['G','G02','Spectrum Green','#A9D8AA'],['G','G03','Meadow Green','#BEDC98'],['G','G05','Emerald Green','#7AC894'],
+    ['G','G07','Nile Green','#62B97A'],['G','G09','Veronese Green','#45A964'],['G','G12','Sea Green','#BBE1C5'],
+    ['G','G14','Apple Green','#88D29F'],['G','G16','Malachite','#4CAC7B'],['G','G17','Forest Green','#2E8F5C'],
+    ['G','G19','Bright Parrot Green','#2DA05C'],['G','G20','Wax White','#E7F0E1'],['G','G21','Lime Green','#CDE3B6'],
+    ['G','G24','Willow','#B5D5A2'],['G','G28','Ocean Green','#3B7B50'],['G','G29','Pine Tree Green','#2B6142'],
+    ['G','G40','Dim Green','#DCE7CA'],['G','G43','Pistachio','#B6D1A0'],['G','G46','Mistletoe','#6E9267'],
+    ['G','G82','Spring Dim Green','#D9E3C2'],['G','G85','Verdigris','#8FAA8A'],['G','G94','Grayish Olive','#8A9275'],
+    ['G','G99','Olive','#5A6942'],
+    ['BG','BG0000','Snow Green','#EDF6EE'],['BG','BG000','Pale Aqua','#EDF6F2'],['BG','BG01','Aqua Blue','#C7E8DE'],
+    ['BG','BG02','New Blue','#B6DFE1'],['BG','BG05','Holiday Blue','#7FCACC'],['BG','BG07','Petroleum Blue','#2FAFB2'],
+    ['BG','BG09','Blue Green','#21A8A8'],['BG','BG10','Cool Shadow','#E7F4F3'],['BG','BG11','Moon White','#D8EEE4'],
+    ['BG','BG13','Mint Green','#D0EAED'],['BG','BG15','Aqua','#9FDBD1'],['BG','BG18','Teal Blue','#3CB5BC'],
+    ['BG','BG23','Coral Sea','#B9E2DA'],['BG','BG32','Aqua Mint','#B8DFD8'],['BG','BG34','Horizon Green','#A5D7C8'],
+    ['BG','BG45','Nile Blue','#C4E3DC'],['BG','BG49','Duck Blue','#008A8E'],['BG','BG53','Ice Mint','#A8D5C8'],
+    ['BG','BG57','Jasper','#1D9393'],['BG','BG70','Ocean Mist','#D7E9E1'],['BG','BG72','Ice Ocean','#7BBABE'],
+    ['BG','BG75','Abyss Green','#4D7E7A'],['BG','BG78','Bronze','#3D6D64'],['BG','BG90','Gray Sky','#C8D4D0'],
+    ['BG','BG93','Green Gray','#A9B9B0'],['BG','BG96','Bush','#72857E'],['BG','BG99','Flagstone Blue','#39524F'],
+    ['B','B0000','Pale Celestine','#F5FBFE'],['B','B000','Pale Porcelain Blue','#E6F2FA'],['B','B00','Frost Blue','#D3EAF5'],
+    ['B','B01','Mint Blue','#C7E3F1'],['B','B02',"Robin's Egg Blue",'#A8D2EC'],['B','B04','Tahitian Blue','#84C1E6'],
+    ['B','B05','Process Blue','#4FABDB'],['B','B06','Peacock Blue','#0092CC'],['B','B12','Ice Blue','#D4EAF2'],
+    ['B','B14','Light Blue','#8AC7E3'],['B','B16','Cyanine Blue','#2388C4'],['B','B18','Lapis Lazuli','#1A5FA5'],
+    ['B','B21','Baby Blue','#C9DDEE'],['B','B23','Phthalo Blue','#7AA7D0'],['B','B24','Sky','#9AD2F2'],
+    ['B','B26','Cobalt Blue','#4A7DB5'],['B','B28','Royal Blue','#0E64B0'],['B','B29','Ultramarine','#1D3FA0'],
+    ['B','B32','Pale Blue','#D7E6EE'],['B','B34','Manganese Blue','#6EA8C9'],['B','B37','Antwerp Blue','#1F466F'],
+    ['B','B39','Prussian Blue','#2C4A8C'],['B','B41','Powder Blue','#DEE8EF'],['B','B45','Smoky Blue','#8AACBE'],
+    ['B','B52','Soft Greenish Blue','#A6BCC7'],['B','B60','Pale Blue Gray','#E3E7F5'],['B','B63','Light Hydrangea','#B6C2DC'],
+    ['B','B66','Clematis','#6E7EB1'],['B','B69','Stratospheric Blue','#3D4A89'],['B','B79','Iris','#44447A'],
+    ['B','B91','Pale Grayish Blue','#D7DDE1'],['B','B93','Light Crockery Blue','#A9BAC4'],['B','B95','Light Grayish Cobalt','#7B8FA1'],
+    ['B','B97','Night Blue','#385068'],['B','B99','Agate','#2B3B52'],
+    ['BV','BV0000','Pale Thistle','#F0ECF6'],['BV','BV000','Iridescent Mauve','#EBE4F0'],['BV','BV00','Mauve Shadow','#DCD4E7'],
+    ['BV','BV01','Viola','#C8BDDD'],['BV','BV02','Prune','#B7A8D0'],['BV','BV04','Blue Berry','#8878B6'],
+    ['BV','BV08','Blue Violet','#7267A8'],['BV','BV11','Soft Violet','#D6CCE3'],['BV','BV13','Hydrangea Blue','#A799CE'],
+    ['BV','BV17','Deep Reddish Blue','#615293'],['BV','BV20','Dull Lavender','#D0CADF'],['BV','BV23','Grayish Lavender','#C0CBE3'],
+    ['BV','BV25','Grayish Violet','#9A96B3'],['BV','BV29','Slate','#3E3D61'],['BV','BV31','Pale Lavender','#E5DFEA'],
+    ['BV','BV34','Bluebell','#9A9CC2'],
+    ['V','V0000','Rose Quartz','#F4EFF4'],['V','V000','Pale Heath','#EBE2EE'],['V','V01','Heath','#E6C8DD'],
+    ['V','V04','Lilac','#D6B0D2'],['V','V05','Marigold','#D89EC2'],['V','V06','Lavender','#B983B9'],
+    ['V','V09','Violet','#8A55A3'],['V','V12','Pale Lilac','#E3CEE2'],['V','V15','Mallow','#CAA8CF'],
+    ['V','V17','Amethyst','#8769A9'],['V','V20','Wisteria','#DED7DF'],['V','V22','Ash Lavender','#C1B8CD'],
+    ['V','V25','Pale Blackberry','#9084A2'],['V','V28','Eggplant','#5F4671'],['V','V91','Pale Grape','#E2D3D8'],
+    ['V','V93','Early Grape','#C9B0BE'],['V','V95','Light Grape','#A48294'],['V','V99','Aubergine','#483747'],
+    ['RV','RV0000','Evening Primrose','#F6EFF6'],['RV','RV000','Pale Purple','#F7E9F2'],['RV','RV00','Water Lily','#F4DEEA'],
+    ['RV','RV02','Sugared Almond Pink','#F3D0DD'],['RV','RV04','Shock Pink','#F3A3C0'],['RV','RV06','Cerise','#EA7AA5'],
+    ['RV','RV09','Fuchsia','#E24E8D'],['RV','RV10','Pale Pink','#FBE3E9'],['RV','RV11','Pink','#F9D1DE'],
+    ['RV','RV13','Tender Pink','#F9BCCC'],['RV','RV14','Begonia Pink','#F099B5'],['RV','RV17','Deep Magenta','#D95889'],
+    ['RV','RV19','Red Violet','#CF2E77'],['RV','RV21','Light Pink','#F8CCD5'],['RV','RV23','Pure Pink','#F5A5B7'],
+    ['RV','RV25','Dog Rose Flower','#EC83A3'],['RV','RV29','Crimson','#DE3A6B'],['RV','RV32','Shadow Pink','#F5C1C9'],
+    ['RV','RV34','Dark Pink','#F09AAB'],['RV','RV42','Salmon Pink','#F4ACAE'],['RV','RV52','Cotton Candy','#F5B8D3'],
+    ['RV','RV55','Hollyhock','#E376A8'],['RV','RV63','Begonia','#E49EC4'],['RV','RV66','Raspberry','#AC3770'],
+    ['RV','RV69','Peony','#8A3563'],['RV','RV91','Grayish Cherry','#DCB9C2'],['RV','RV93','Smoky Purple','#C099A5'],
+    ['RV','RV95','Baby Blossoms','#B8848D'],['RV','RV99','Argyle Purple','#5E3D4C'],
+    ['R','R0000','Pink Beryl','#FEEDE7'],['R','R000','Cherry White','#FFE7DF'],['R','R00','Pinkish White','#FEEFE7'],
+    ['R','R01','Pinkish Vanilla','#FDDDD3'],['R','R02','Flesh','#FCCBB7'],['R','R05','Salmon Red','#F4876B'],
+    ['R','R08','Vermilion','#EF553D'],['R','R11','Pale Cherry Pink','#FCE8DC'],['R','R12','Light Tea Rose','#FACDC2'],
+    ['R','R14','Light Rouge','#F2A093'],['R','R17','Lipstick Orange','#EC5E45'],['R','R20','Blush','#FBDFD8'],
+    ['R','R21','Sardonyx','#F6B9A9'],['R','R22','Light Prawn','#F5A79A'],['R','R24','Prawn','#EC7275'],
+    ['R','R27','Cadmium Red','#DE3B50'],['R','R29','Lipstick Red','#D6234C'],['R','R30','Pale Yellowish Pink','#FDE0DA'],
+    ['R','R32','Peach','#F8BEB3'],['R','R35','Coral','#ED8178'],['R','R37','Carmine','#E56B70'],
+    ['R','R39','Garnet','#C63A50'],['R','R43','Bougainvillea','#EC6F85'],['R','R46','Strong Red','#D33246'],
+    ['R','R56','Currant','#9F4A5E'],['R','R59','Cardinal','#A4313F'],['R','R81','Rose Pink','#F4D2DD'],
+    ['R','R83','Rose Mist','#EAA9BE'],['R','R85','Rose Red','#D06F8E'],['R','R89','Dark Red','#6F2335'],
+    ['YR','YR0000','Pale Chiffon','#FFF6EB'],['YR','YR000','Silk','#FDEAD6'],['YR','YR00','Powder Pink','#FDDCC4'],
+    ['YR','YR01','Peach Puff','#FCCBA4'],['YR','YR02','Light Orange','#FEC79B'],['YR','YR04','Chrome Orange','#FDB264'],
+    ['YR','YR07','Cadmium Orange','#F8924B'],['YR','YR09','Chinese Orange','#F37839'],['YR','YR12','Loquat','#FDD48C'],
+    ['YR','YR14','Caramel','#F8B372'],['YR','YR15','Pumpkin Yellow','#FBC06D'],['YR','YR16','Apricot','#F8A34E'],
+    ['YR','YR18','Sanguine','#EA6631'],['YR','YR20','Yellowish Shade','#FBE5BF'],['YR','YR21','Cream','#FDDDA7'],
+    ['YR','YR23','Yellow Ochre','#F5C781'],['YR','YR24','Pale Sepia','#E8B568'],['YR','YR27','Tuscan Orange','#D06B30'],
+    ['YR','YR30','Macadamia Nut','#FAE7CD'],['YR','YR31','Light Reddish Yellow','#F9DBA8'],['YR','YR61','Yellowish Skin Pink','#F4C9A6'],
+    ['YR','YR65','Atoll','#EE9968'],['YR','YR68','Orange','#EB6A31'],['YR','YR82','Mellow Peach','#F9CBA4'],
+    ['E','E0000','Floral White','#FAF2E8'],['E','E000','Pale Fruit Pink','#FFF8F2'],['E','E00','Skin White','#FEF1E6'],
+    ['E','E01','Pink Flamingo','#FBE2D4'],['E','E02','Fruit Pink','#F9D8C8'],['E','E04','Lipstick Natural','#EAC8CE'],
+    ['E','E07','Light Mahogany','#C07156'],['E','E08','Brown','#A45842'],['E','E09','Burnt Sienna','#9A4A35'],
+    ['E','E11','Barley Beige','#FEEFDE'],['E','E13','Light Suntan','#EFCBA4'],['E','E15','Dark Suntan','#DDA074'],
+    ['E','E17','Reddish Brass','#A25A3B'],['E','E18','Copper','#7E4228'],['E','E19','Redwood','#703A2A'],
+    ['E','E21','Baby Skin Pink','#FCD9BD'],['E','E23','Hazelnut','#CB9978'],['E','E25','Caribe Cocoa','#D0A179'],
+    ['E','E27','Africano','#84604A'],['E','E29','Burnt Umber','#5A3827'],['E','E30','Bisque','#F5E4C6'],
+    ['E','E31','Brick Beige','#EED5A9'],['E','E33','Sand','#E2BC88'],['E','E34','Orientale','#D3A472'],
+    ['E','E35','Chamois','#ECD0AD'],['E','E37','Sepia','#A6744F'],['E','E39','Leather','#8F5A38'],
+    ['E','E40','Brick White','#EFE0CA'],['E','E41','Pearl White','#F3E4CD'],['E','E42','Sand White','#EDD9B0'],
+    ['E','E43','Dull Ivory','#D9BD93'],['E','E44','Clay','#BBA184'],['E','E47','Dark Brown','#6C4A34'],
+    ['E','E49','Dark Bark','#4D3528'],['E','E50','Egg Shell','#F6F1F3'],['E','E51','Milky White','#F5E8D6'],
+    ['E','E53','Raw Silk','#E8D3AE'],['E','E55','Light Camel','#DCB887'],['E','E57','Light Walnut','#956A43'],
+    ['E','E59','Walnut','#6B4E3A'],['E','E70','Ash Rose','#DCCBB4'],['E','E71','Champagne','#C9B198'],
+    ['E','E74','Cocoa Brown','#7D6651'],['E','E77','Maroon','#6E4A3A'],['E','E79','Cashew','#4A3324'],
+    ['E','E81','Ivory','#DAC79E'],['E','E84','Khaki','#85765A'],['E','E87','Fig','#6B5548'],
+    ['E','E89','Pecan','#5E3E2E'],['E','E93','Tea Rose','#EAC9BD'],['E','E95','Flesh Pink','#E8B294'],
+    ['E','E97','Deep Orange','#C0784E'],['E','E99','Baked Clay','#6A3F2C'],
+    ['C','C-00','Cool Gray No.00','#F0F4F7'],['C','C-0','Cool Gray No.0','#EAEFF2'],['C','C-1','Cool Gray No.1','#D8DEE1'],
+    ['C','C-2','Cool Gray No.2','#C6CED1'],['C','C-3','Cool Gray No.3','#B1B9BD'],['C','C-4','Cool Gray No.4','#9BA3A7'],
+    ['C','C-5','Cool Gray No.5','#858C8F'],['C','C-6','Cool Gray No.6','#6F7679'],['C','C-7','Cool Gray No.7','#595F62'],
+    ['C','C-8','Cool Gray No.8','#44494C'],['C','C-9','Cool Gray No.9','#33373A'],['C','C-10','Cool Gray No.10','#22262A'],
+    ['N','N-0','Neutral Gray No.0','#ECECEC'],['N','N-1','Neutral Gray No.1','#DADADA'],['N','N-2','Neutral Gray No.2','#C6C6C6'],
+    ['N','N-3','Neutral Gray No.3','#B1B1B1'],['N','N-4','Neutral Gray No.4','#9C9C9C'],['N','N-5','Neutral Gray No.5','#868686'],
+    ['N','N-6','Neutral Gray No.6','#707070'],['N','N-7','Neutral Gray No.7','#5A5A5A'],['N','N-8','Neutral Gray No.8','#666565'],
+    ['N','N-9','Neutral Gray No.9','#3E3E3E'],['N','N-10','Neutral Gray No.10','#2B2B2B'],
+    ['T','T-0','Toner Gray No.0','#EEECE8'],['T','T-1','Toner Gray No.1','#DCDAD5'],['T','T-2','Toner Gray No.2','#C8C6C0'],
+    ['T','T-3','Toner Gray No.3','#B3B1AA'],['T','T-4','Toner Gray No.4','#9D9B94'],['T','T-5','Toner Gray No.5','#87857E'],
+    ['T','T-6','Toner Gray No.6','#716F68'],['T','T-7','Toner Gray No.7','#5B5952'],['T','T-8','Toner Gray No.8','#45433D'],
+    ['T','T-9','Toner Gray No.9','#302E28'],['T','T-10','Toner Gray No.10','#1F1D18'],
+    ['W','W-00','Warm Gray No.00','#EFEDE9'],['W','W-0','Warm Gray No.0','#E7E3DD'],['W','W-1','Warm Gray No.1','#D7D2CA'],
+    ['W','W-2','Warm Gray No.2','#C5BFB4'],['W','W-3','Warm Gray No.3','#B0A99D'],['W','W-4','Warm Gray No.4','#9B9285'],
+    ['W','W-5','Warm Gray No.5','#857C6E'],['W','W-6','Warm Gray No.6','#6F6659'],['W','W-7','Warm Gray No.7','#595143'],
+    ['W','W-8','Warm Gray No.8','#443C2E'],['W','W-9','Warm Gray No.9','#302921'],['W','W-10','Warm Gray No.10','#1F1A14'],
+    ['Achromatic','0','Colorless Blender','#FFFFFF'],['Achromatic','100','Black','#1B1B1B'],['Achromatic','110','Special Black','#0A0A0A'],
+    ['F','FRV1','Fluorescent Pink','#FF6BA8'],['F','FYR1','Fluorescent Orange','#FF8B3D'],['F','FY1','Fluorescent Yellow Orange','#FFD03D'],
+    ['F','FYG1','Fluorescent Yellow','#E4F53D'],['F','FV2','Fluorescent Dull Violet','#B59BCC'],['F','FYG2','Fluorescent Dull Yellow Green','#BACA85'],
+    ['F','FBG2','Fluorescent Dull Blue Green','#8ECBC8'],['F','FB2','Fluorescent Dull Blue','#92B4D0']
+  ];
+
+  function textColorFor(hex) {
+    const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+    const lum = (0.299*r + 0.587*g + 0.114*b);
+    return lum > 150 ? '#111' : '#fff';
+  }
+
+  function buildUI() {
+    const spectrumStrip = document.getElementById('spectrumStrip');
+    const carouselTrack = document.getElementById('carouselTrack');
+
+    const stripFrag = document.createDocumentFragment();
+    COLORS.forEach(([family, code, name, hex]) => {
+      const fg = textColorFor(hex);
+      const mini = document.createElement('div');
+      mini.className = 'mini missing';
+      mini.style.background = hex;
+      mini.style.color = fg;
+      mini.dataset.code = code;
+      mini.dataset.family = family;
+      mini.dataset.name = name;
+      mini.dataset.search = (code + ' ' + name).toLowerCase();
+      mini.setAttribute('role', 'button');
+      mini.setAttribute('tabindex', '0');
+      mini.setAttribute('aria-pressed', 'false');
+      mini.title = code + ' · ' + name;
+      const label = document.createElement('span');
+      label.className = 'mini-label';
+      label.textContent = code;
+      mini.appendChild(label);
+      stripFrag.appendChild(mini);
+    });
+    spectrumStrip.appendChild(stripFrag);
+
+    const trackFrag = document.createDocumentFragment();
+    FAMILIES.forEach(({ code: famCode, name: famName }) => {
+      const famColors = COLORS.filter(c => c[0] === famCode);
+      if (famColors.length === 0) return;
+
+      const slide = document.createElement('div');
+      slide.className = 'carousel-slide family-slide';
+      slide.id = 'family-' + famCode;
+      slide.dataset.family = famCode;
+      slide.dataset.familyName = famName;
+      slide.dataset.familyTotal = famColors.length;
+
+      const grid = document.createElement('div');
+      grid.className = 'grid';
+      famColors.forEach(([, code, name, hex]) => {
+        const fg = textColorFor(hex);
+        const sw = document.createElement('div');
+        sw.className = 'swatch missing';
+        sw.style.background = hex;
+        sw.style.color = fg;
+        sw.dataset.code = code;
+        sw.dataset.name = name;
+        sw.dataset.search = (code + ' ' + name).toLowerCase();
+        sw.setAttribute('role', 'button');
+        sw.setAttribute('tabindex', '0');
+        sw.setAttribute('aria-pressed', 'false');
+        sw.innerHTML = '<div class="swatch-code">' + code + '</div><div class="swatch-name">' + name + '</div>';
+        grid.appendChild(sw);
+      });
+      slide.appendChild(grid);
+      trackFrag.appendChild(slide);
+    });
+    carouselTrack.appendChild(trackFrag);
+  }
+
+  buildUI();
+
+  (function() {
+    const root = document.documentElement;
+    const themeBtn = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+    const themeLabel = document.getElementById('themeLabel');
+    const resetBtn = document.getElementById('resetBtn');
+    const exportBtn = document.getElementById('exportBtn');
+    const carouselProgressFill = document.getElementById('carouselProgressFill');
+    const total = COLORS.length;
+
+    const STORAGE_KEY = 'copic-owned';
+    const THEME_KEY = 'copic-theme';
+
+    // Resilient storage
+    const storage = (function() {
+      let claudeStorageWorks = typeof window.storage !== 'undefined';
+      let localStorageWorks = (function() {
+        try {
+          const k = '__copic_test__';
+          window.localStorage.setItem(k, '1');
+          window.localStorage.removeItem(k);
+          return true;
+        } catch (e) { return false; }
+      })();
+
+      function get(key) {
+        return new Promise(function(resolve) {
+          if (claudeStorageWorks) {
+            window.storage.get(key).then(function(r) {
+              if (r && r.value !== undefined) { resolve(r.value); return; }
+              if (localStorageWorks) {
+                try { resolve(window.localStorage.getItem(key)); } catch(e) { resolve(null); }
+              } else resolve(null);
+            }).catch(function() {
+              claudeStorageWorks = false;
+              if (localStorageWorks) {
+                try { resolve(window.localStorage.getItem(key)); } catch(e) { resolve(null); }
+              } else resolve(null);
+            });
+          } else if (localStorageWorks) {
+            try { resolve(window.localStorage.getItem(key)); } catch(e) { resolve(null); }
+          } else resolve(null);
+        });
+      }
+
+      function set(key, value) {
+        if (claudeStorageWorks) {
+          window.storage.set(key, value).catch(function() { claudeStorageWorks = false; });
+        }
+        if (localStorageWorks) {
+          try { window.localStorage.setItem(key, value); } catch(e) { localStorageWorks = false; }
+        }
+      }
+
+      return { get: get, set: set };
+    })();
+
+    // Theme
+    function initTheme() {
+      storage.get(THEME_KEY).then(function(theme) {
+        if (!theme) {
+          theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        root.setAttribute('data-theme', theme);
+        updateThemeButton();
+      });
+    }
+
+    const SUN_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>';
+    const MOON_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+
+    function updateThemeButton() {
+      const theme = root.getAttribute('data-theme');
+      if (theme === 'dark') {
+        themeIcon.innerHTML = SUN_ICON;
+        themeLabel.textContent = 'Light';
+      } else {
+        themeIcon.innerHTML = MOON_ICON;
+        themeLabel.textContent = 'Dark';
+      }
+    }
+
+    themeBtn.addEventListener('click', function() {
+      const current = root.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      updateThemeButton();
+      storage.set(THEME_KEY, next);
+    });
+
+    // Follow system theme changes when user has no explicit preference set
+    if (window.matchMedia) {
+      const mq = window.matchMedia('(prefers-color-scheme: dark)');
+      mq.addEventListener('change', function(e) {
+        storage.get(THEME_KEY).then(function(stored) {
+          if (stored === 'light' || stored === 'dark') return;
+          root.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+          updateThemeButton();
+        });
+      });
+    }
+
+    // Tile state
+    const allTiles = Array.from(document.querySelectorAll('.swatch, .mini'));
+    const swatches = Array.from(document.querySelectorAll('.swatch'));
+
+    function currentOwnedSet() {
+      const set = new Set();
+      swatches.forEach(function(s) {
+        if (s.classList.contains('owned')) set.add(s.dataset.code);
+      });
+      return set;
+    }
+
+    function setTileOwned(tile, owned) {
+      tile.classList.toggle('owned', owned);
+      tile.classList.toggle('missing', !owned);
+      tile.setAttribute('aria-pressed', owned ? 'true' : 'false');
+    }
+
+    function syncCode(code, owned) {
+      allTiles.forEach(function(tile) {
+        if (tile.dataset.code === code) setTileOwned(tile, owned);
+      });
+    }
+
+    function applyOwnedSet(set) {
+      allTiles.forEach(function(tile) { setTileOwned(tile, set.has(tile.dataset.code)); });
+      updateStats();
+    }
+
+    function checkEmptyState() {
+      const activeSlide = document.querySelector('.carousel-slide.active');
+      if (!activeSlide) return;
+      const tiles = activeSlide.querySelectorAll('.swatch, .mini');
+      const isSearching = document.body.classList.contains('searching');
+      const filter = document.body.getAttribute('data-filter');
+      let visibleCount = 0;
+      tiles.forEach(function(t) {
+        const isOwned = t.classList.contains('owned');
+        let visible = true;
+        if (filter === 'owned' && !isOwned) visible = false;
+        if (filter === 'missing' && isOwned) visible = false;
+        if (isSearching && !t.classList.contains('match')) visible = false;
+        if (visible) visibleCount++;
+      });
+      const isEmpty = visibleCount === 0;
+      document.body.classList.toggle('empty-active', isEmpty);
+      if (isEmpty) {
+        const text = document.getElementById('emptyStateText');
+        if (isSearching) text.textContent = 'No colors match your search.';
+        else if (filter === 'owned') text.textContent = "You haven't marked any colors as owned yet.";
+        else if (filter === 'missing') text.textContent = 'You own every color in this view.';
+        else text.textContent = 'No colors to show.';
+      }
+    }
+
+    function refreshCarouselMeta() {
+      const activeSlide = document.querySelector('.carousel-slide.active');
+      if (!activeSlide) return;
+      const meta = document.getElementById('carouselMeta');
+      const owned = currentOwnedSet();
+      let count, slideTotal;
+      if (activeSlide.id === 'spectrum') {
+        count = owned.size;
+        slideTotal = total;
+      } else {
+        slideTotal = parseInt(activeSlide.dataset.familyTotal, 10) || 0;
+        count = 0;
+        activeSlide.querySelectorAll('.swatch').forEach(function(s) {
+          if (owned.has(s.dataset.code)) count++;
+        });
+      }
+      meta.innerHTML = '<strong>' + count + '</strong> / ' + slideTotal;
+      const pct = slideTotal ? (count / slideTotal * 100) : 0;
+      carouselProgressFill.style.width = pct + '%';
+      checkEmptyState();
+    }
+
+    function updateStats() {
+      refreshCarouselMeta();
+    }
+
+    function saveOwned() {
+      const owned = Array.from(currentOwnedSet());
+      storage.set(STORAGE_KEY, JSON.stringify(owned));
+    }
+
+    function loadOwned() {
+      storage.get(STORAGE_KEY).then(function(value) {
+        if (!value) return;
+        try {
+          const arr = JSON.parse(value);
+          applyOwnedSet(new Set(arr));
+        } catch (e) { /* ignore */ }
+      });
+    }
+
+    // Toast
+    const toast = document.getElementById('toast');
+    const toastText = toast.querySelector('.toast-text');
+    let toastTimer;
+
+    function showToast(message, removed) {
+      toastText.textContent = message;
+      toast.classList.toggle('removed', !!removed);
+      toast.classList.add('visible');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(function() { toast.classList.remove('visible'); }, 1400);
+    }
+
+    // Tile click
+    allTiles.forEach(function(tile) {
+      tile.addEventListener('click', function() {
+        const code = tile.dataset.code;
+        const name = tile.dataset.name || '';
+        const newOwned = !tile.classList.contains('owned');
+        syncCode(code, newOwned);
+        updateStats();
+        saveOwned();
+        const label = name ? code + ' · ' + name : code;
+        showToast((newOwned ? 'Added ' : 'Removed ') + label, !newOwned);
+      });
+      tile.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          tile.click();
+        }
+      });
+    });
+
+    // Reset
+    resetBtn.addEventListener('click', function() {
+      if (!confirm('Clear your entire list? This cannot be undone.')) return;
+      applyOwnedSet(new Set());
+      saveOwned();
+    });
+
+    // Export
+    exportBtn.addEventListener('click', function() {
+      const owned = Array.from(currentOwnedSet()).sort();
+      const allCodes = swatches.map(function(s) { return s.dataset.code; });
+      const missing = allCodes.filter(function(c) { return owned.indexOf(c) === -1; }).sort();
+
+      const text = 'COPIC SKETCH INVENTORY\n' +
+        'Exported: ' + new Date().toISOString().split('T')[0] + '\n\n' +
+        'OWNED (' + owned.length + '):\n' +
+        owned.join(', ') + '\n\n' +
+        'MISSING (' + missing.length + '):\n' +
+        missing.join(', ');
+
+      const blob = new Blob([text], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'copic-inventory-' + new Date().toISOString().split('T')[0] + '.txt';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    // Import
+    const importBtn = document.getElementById('importBtn');
+    const importFile = document.getElementById('importFile');
+    importBtn.addEventListener('click', function() { importFile.click(); });
+
+    importFile.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const text = evt.target.result;
+        const parsed = parseImport(text);
+        if (parsed.size === 0) {
+          alert('No valid Copic codes found in this file.');
+          return;
+        }
+        const current = currentOwnedSet();
+        const message = current.size > 0
+          ? 'Import ' + parsed.size + ' markers? This will replace your current list of ' + current.size + '.'
+          : 'Import ' + parsed.size + ' markers?';
+        if (!confirm(message)) return;
+        applyOwnedSet(parsed);
+        saveOwned();
+      };
+      reader.onerror = function() { alert('Could not read file.'); };
+      reader.readAsText(file);
+      importFile.value = '';
+    });
+
+    function parseImport(text) {
+      const allCodes = new Set(swatches.map(function(s) { return s.dataset.code; }));
+      const found = new Set();
+      try {
+        const json = JSON.parse(text);
+        const arr = Array.isArray(json) ? json : (json.owned || []);
+        arr.forEach(function(code) { if (allCodes.has(code)) found.add(code); });
+        if (found.size > 0) return found;
+      } catch (e) { /* not JSON */ }
+
+      // Find owned section: support both EN ("OWNED") and legacy NL ("IN BEZIT")
+      let scanText = text;
+      const ownedIdx = Math.max(text.indexOf('OWNED'), text.indexOf('IN BEZIT'));
+      if (ownedIdx !== -1) {
+        let endIdx = text.indexOf('MISSING', ownedIdx);
+        if (endIdx === -1) endIdx = text.indexOf('MIST', ownedIdx);
+        scanText = endIdx !== -1
+          ? text.substring(ownedIdx, endIdx)
+          : text.substring(ownedIdx);
+      }
+      const tokens = scanText.split(/[^A-Za-z0-9-]+/);
+      tokens.forEach(function(token) {
+        const clean = token.trim();
+        if (clean && allCodes.has(clean)) found.add(clean);
+      });
+      return found;
+    }
+
+    // Filter
+    const filterBtns = document.querySelectorAll('.filter-pill[data-filter]');
+    filterBtns.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        const filter = btn.dataset.filter;
+        if (filter === 'all') document.body.removeAttribute('data-filter');
+        else document.body.setAttribute('data-filter', filter);
+        filterBtns.forEach(function(b) { b.classList.toggle('active', b === btn); });
+        checkEmptyState();
+      });
+    });
+
+    // Codes toggle
+    const codeToggle = document.getElementById('codeToggle');
+    codeToggle.addEventListener('click', function() {
+      const next = codeToggle.getAttribute('aria-pressed') !== 'true';
+      codeToggle.setAttribute('aria-pressed', next ? 'true' : 'false');
+      document.body.classList.toggle('show-codes', next);
+    });
+
+    // Search (with expand/collapse)
+    const searchWrap = document.getElementById('searchWrap');
+    const searchToggle = document.getElementById('searchToggle');
+    const searchInput = document.getElementById('searchInput');
+    const clearSearch = document.getElementById('clearSearch');
+
+    function applySearch(rawQuery) {
+      const query = rawQuery.trim().toLowerCase();
+      const hasQuery = query.length > 0;
+      document.body.classList.toggle('searching', hasQuery);
+      if (!hasQuery) {
+        allTiles.forEach(function(t) { t.classList.remove('match'); });
+      } else {
+        allTiles.forEach(function(tile) {
+          const haystack = tile.dataset.search || '';
+          tile.classList.toggle('match', haystack.indexOf(query) !== -1);
+        });
+      }
+      checkEmptyState();
+    }
+
+    function openSearch() {
+      searchWrap.dataset.open = 'true';
+      searchToggle.setAttribute('aria-expanded', 'true');
+      setTimeout(function() { searchInput.focus(); }, 50);
+    }
+
+    function closeSearch() {
+      searchWrap.dataset.open = 'false';
+      searchToggle.setAttribute('aria-expanded', 'false');
+      searchInput.value = '';
+      applySearch('');
+    }
+
+    searchToggle.addEventListener('click', openSearch);
+    clearSearch.addEventListener('click', closeSearch);
+
+    document.addEventListener('click', function(e) {
+      if (searchWrap.dataset.open !== 'true') return;
+      if (searchWrap.contains(e.target)) return;
+      closeSearch();
+    });
+
+    let searchDebounce;
+    searchInput.addEventListener('input', function() {
+      clearTimeout(searchDebounce);
+      searchDebounce = setTimeout(function() { applySearch(searchInput.value); }, 60);
+    });
+
+    searchInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        const firstMatch = document.querySelector('.carousel-slide.active .swatch.match, .carousel-slide.active .mini.match');
+        if (firstMatch) {
+          // iOS Safari handles 'smooth' poorly; check support first
+          const supportsSmooth = 'scrollBehavior' in document.documentElement.style;
+          firstMatch.scrollIntoView({ behavior: supportsSmooth ? 'smooth' : 'auto', block: 'center' });
+        }
+      }
+    });
+
+    // Carousel
+    const carouselTrack = document.getElementById('carouselTrack');
+    const carouselSlides = Array.from(carouselTrack.querySelectorAll('.carousel-slide'));
+    const carouselTitle = document.getElementById('carouselTitle');
+    const prevFamilyBtn = document.getElementById('prevFamily');
+    const nextFamilyBtn = document.getElementById('nextFamily');
+    const chips = Array.from(document.querySelectorAll('.chip[data-jump]'));
+
+    let currentSlide = 0;
+    let slideAnimRaf = null;
+
+    function gotoSlide(index) {
+      const len = carouselSlides.length;
+      const wrapped = ((index % len) + len) % len;
+      currentSlide = wrapped;
+
+      // Enable GPU promotion only during the animation, then release it
+      carouselTrack.style.willChange = 'transform';
+      carouselTrack.style.transform = 'translateX(-' + (wrapped * 100) + '%)';
+      if (slideAnimRaf) clearTimeout(slideAnimRaf);
+      slideAnimRaf = setTimeout(function() {
+        carouselTrack.style.willChange = 'auto';
+      }, 400);
+
+      carouselSlides.forEach(function(s, i) {
+        const active = i === wrapped;
+        s.classList.toggle('active', active);
+        if (active) s.removeAttribute('aria-hidden');
+        else s.setAttribute('aria-hidden', 'true');
+      });
+      const slide = carouselSlides[wrapped];
+      carouselTitle.textContent = slide.dataset.familyName || 'All';
+      refreshCarouselMeta();
+      const slideId = slide.id;
+      const targetJump = slideId === 'spectrum' ? 'spectrum' : slideId;
+      chips.forEach(function(chip) {
+        chip.classList.toggle('active', chip.dataset.jump === targetJump);
+      });
+    }
+
+    prevFamilyBtn.addEventListener('click', function() { gotoSlide(currentSlide - 1); });
+    nextFamilyBtn.addEventListener('click', function() { gotoSlide(currentSlide + 1); });
+
+    chips.forEach(function(chip) {
+      chip.addEventListener('click', function() {
+        const target = chip.dataset.jump;
+        let idx;
+        if (target === 'spectrum') idx = 0;
+        else {
+          const familyCode = target.replace(/^family-/, '');
+          idx = carouselSlides.findIndex(function(s) { return s.dataset.family === familyCode; });
+        }
+        if (idx >= 0) gotoSlide(idx);
+      });
+    });
+
+    gotoSlide(0);
+
+    // Scroll-to-top
+    const scrollTopBtn = document.getElementById('scrollTop');
+    function updateScrollTop() {
+      const visible = window.scrollY > 400;
+      scrollTopBtn.classList.toggle('visible', visible);
+      document.body.classList.toggle('has-scroll-top', visible);
+    }
+    let scrollRaf;
+    window.addEventListener('scroll', function() {
+      if (scrollRaf) return;
+      scrollRaf = requestAnimationFrame(function() {
+        updateScrollTop();
+        scrollRaf = null;
+      });
+    }, { passive: true });
+    scrollTopBtn.addEventListener('click', function() {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && searchWrap.dataset.open === 'true') {
+        e.preventDefault();
+        closeSearch();
+        return;
+      }
+      if (e.target.matches('input, textarea')) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+      if (e.key === '/') {
+        e.preventDefault();
+        openSearch();
+      } else if (e.key === '1') {
+        document.querySelector('.filter-pill[data-filter="all"]').click();
+      } else if (e.key === '2') {
+        document.querySelector('.filter-pill[data-filter="owned"]').click();
+      } else if (e.key === '3') {
+        document.querySelector('.filter-pill[data-filter="missing"]').click();
+      } else if (e.key === 'ArrowLeft') {
+        gotoSlide(currentSlide - 1);
+      } else if (e.key === 'ArrowRight') {
+        gotoSlide(currentSlide + 1);
+      } else if (e.key === 'c' || e.key === 'C') {
+        codeToggle.click();
+      } else if (e.key === 't' || e.key === 'T') {
+        themeBtn.click();
+      }
+    });
+
+    // Init
+    initTheme();
+    loadOwned();
+    updateStats();
+  })();
+</script>
+
+</body>
+</html>
