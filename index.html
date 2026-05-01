@@ -394,13 +394,58 @@
     touch-action: manipulation;
   }
   .filter-pill:hover { color: var(--text); }
-  /* Brand switcher: same shape as filter pills but accent-tinted active state
-     so it reads as primary navigation, not a secondary view filter. */
-  .brand-switch .filter-pill.active {
-    background: var(--accent-soft);
-    color: var(--accent);
+  /* Brand bar — primary navigation, lives in its own band above the toolbar.
+     Apple-style segmented control: pill container, active segment fills with
+     elevated bg and gains weight; inactive is muted. No scale transforms. */
+  .brand-bar {
+    display: flex;
+    justify-content: center;
+    padding: var(--s-3) 0 var(--s-5);
+    margin: 0 0 var(--s-3);
   }
-  .brand-switch { margin-right: var(--s-2); }
+  .brand-segments {
+    display: inline-flex;
+    background: var(--bg-subtle);
+    padding: 4px;
+    border-radius: var(--r-full);
+    border: 1px solid var(--border);
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.03);
+  }
+  .brand-tab {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--font-sans);
+    font-size: var(--fs-md);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    padding: 0 28px;
+    height: 36px;
+    min-width: 110px;
+    border-radius: var(--r-full);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    transition:
+      background 0.25s var(--ease),
+      color 0.25s var(--ease),
+      box-shadow 0.25s var(--ease);
+  }
+  .brand-tab:hover { color: var(--text); }
+  .brand-tab.active {
+    background: var(--bg-elevated);
+    color: var(--text);
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(20, 20, 19, 0.08), 0 1px 0 rgba(20, 20, 19, 0.02);
+  }
+  :root[data-theme="dark"] .brand-tab.active {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  }
+  .brand-tab:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
   .filter-pill.active {
     background: var(--bg-elevated);
     color: var(--text);
@@ -486,29 +531,32 @@
     /* 5-point polygon at the top-right corner so clip-path can animate
        into the .owned notch without a geometric jump on toggle. */
     clip-path: polygon(0 0, 100% 0, 100% 0, 100% 100%, 0 100%);
+    /* Tactile feel via shadow + brightness, never via scale — scale jumps
+       cause layout shift and break the Apple-like "stable rest" feeling. */
     transition:
-      transform 0.35s var(--ease-spring),
       clip-path 0.35s var(--ease-spring),
-      box-shadow 0.2s var(--ease),
+      box-shadow 0.25s var(--ease),
+      filter 0.18s var(--ease),
       opacity 0.2s var(--ease);
     box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04);
   }
-  /* Hover only on devices that actually support it */
   @media (hover: hover) {
     .mini:hover {
-      transform: scale(1.08);
       z-index: 5;
-      box-shadow: 0 6px 16px rgba(20, 20, 19, 0.18), inset 0 0 0 1px rgba(0,0,0,0.08);
+      box-shadow: 0 6px 18px rgba(20, 20, 19, 0.18), inset 0 0 0 1px rgba(0,0,0,0.10);
+      filter: brightness(1.04);
     }
     :root[data-theme="dark"] .mini:hover {
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255,255,255,0.08);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255,255,255,0.10);
     }
     .mini:hover .mini-label { opacity: 1; }
   }
-  /* Quick press in, then the base transition springs it back out */
+  /* Press: darken slightly and sink the shadow inward — the tile feels
+     pushed in, like a real button. No transform, no jump. */
   .mini:active {
-    transform: scale(0.94);
-    transition: transform 0.08s var(--ease);
+    filter: brightness(0.93);
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.18), inset 0 0 0 1px rgba(0,0,0,0.10);
+    transition: filter 0.08s var(--ease), box-shadow 0.08s var(--ease);
   }
   .mini:focus-visible {
     outline: 2px solid var(--ink);
@@ -556,26 +604,26 @@
     /* 5-point polygon so the .owned corner notch animates instead of jumping */
     clip-path: polygon(0 0, 100% 0, 100% 0, 100% 100%, 0 100%);
     transition:
-      transform 0.35s var(--ease-spring),
       clip-path 0.35s var(--ease-spring),
-      box-shadow 0.2s var(--ease),
+      box-shadow 0.25s var(--ease),
+      filter 0.18s var(--ease),
       opacity 0.2s var(--ease);
     box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04);
   }
   @media (hover: hover) {
     .swatch:hover {
-      transform: translateY(-2px) scale(1.02);
       z-index: 2;
-      box-shadow: 0 8px 24px rgba(20, 20, 19, 0.15), inset 0 0 0 1px rgba(0,0,0,0.06);
+      box-shadow: 0 10px 28px rgba(20, 20, 19, 0.18), inset 0 0 0 1px rgba(0,0,0,0.08);
+      filter: brightness(1.04);
     }
     :root[data-theme="dark"] .swatch:hover {
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255,255,255,0.06);
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255,255,255,0.08);
     }
   }
-  /* Quick press in, then base transition springs it back */
   .swatch:active {
-    transform: scale(0.96);
-    transition: transform 0.08s var(--ease);
+    filter: brightness(0.93);
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.18), inset 0 0 0 1px rgba(0,0,0,0.08);
+    transition: filter 0.08s var(--ease), box-shadow 0.08s var(--ease);
   }
   .swatch:focus-visible {
     outline: 2px solid var(--ink);
@@ -590,6 +638,55 @@
     inset: 0;
     box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06);
     pointer-events: none;
+  }
+
+  /* ═══════ Posca-specific layout ═══════ */
+  /* The All view shows cards (not minis) since 68 colors don't need
+     compression. Cards are taller to accommodate the nib-chip row. */
+  body[data-brand="posca"] .spectrum-strip {
+    grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+    gap: 8px;
+  }
+  body[data-brand="posca"] .swatch {
+    aspect-ratio: 1 / 1;
+    padding: 12px;
+  }
+  body[data-brand="posca"] .grid {
+    grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+    gap: 8px;
+  }
+
+  /* Pen-size chips inside a Posca swatch — small monospace tags below
+     code+name, semi-transparent so they sit on the swatch color. */
+  .swatch-nibs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin-top: auto;
+    padding-top: 6px;
+  }
+  .nib-chip {
+    display: inline-flex;
+    align-items: center;
+    height: 16px;
+    padding: 0 5px;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    border-radius: 3px;
+    pointer-events: none;
+  }
+  /* Chip backgrounds are intentionally close to opaque so contrast is
+     decoupled from the swatch color — readable on any hue, including the
+     mid-tone greens/blues where translucent overlays disappear. */
+  .swatch[data-fg="light"] .nib-chip {
+    background: rgba(255,255,255,0.78);
+    color: rgba(0,0,0,0.82);
+  }
+  .swatch[data-fg="dark"] .nib-chip {
+    background: rgba(0,0,0,0.62);
+    color: rgba(255,255,255,0.96);
   }
   .swatch-code {
     font-family: var(--font-mono);
@@ -763,13 +860,15 @@
 <a class="skip-link" href="#main-content">Skip to colors</a>
 <div class="container">
 
+<header class="brand-bar" role="banner">
+  <div class="brand-segments" role="group" aria-label="Marker brand">
+    <button class="brand-tab" data-brand="copic">Copic</button>
+    <button class="brand-tab" data-brand="posca">Posca</button>
+  </div>
+</header>
+
 <nav class="toolbar" aria-label="Controls">
   <div class="toolbar-row">
-    <div class="filter-group brand-switch" role="group" aria-label="Marker brand">
-      <button class="filter-pill" data-brand="copic">Copic</button>
-      <button class="filter-pill" data-brand="posca">Posca</button>
-    </div>
-    <span class="toolbar-divider" aria-hidden="true"></span>
     <div class="search-wrap" id="searchWrap">
       <button class="ghost-btn" id="searchToggle" aria-label="Search" title="Search (/)" aria-expanded="false">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -1052,6 +1151,27 @@
     ['Glitter','G15','Glitter Red','#BD5F74'],['Glitter','G33','Glitter Dark Blue','#056CAB']
   ];
 
+  // Posca pen-size availability per family. Approximations from the public
+  // Posca range — Standard colors live across most sizes, Pastel/Fluo are
+  // typically the medium tips, Metallic ships in PC-3M(L)/PC-5M, Glitter is
+  // PC-3ML only. Edit per-color overrides in POSCA_NIB_OVERRIDES if needed.
+  const POSCA_NIBS_BY_FAMILY = {
+    Standard: ['1M', '3M', '5M', '7M', '8K', '17K'],
+    Pastel:   ['3M', '5M'],
+    Fluo:     ['3M', '5M', '8K'],
+    Metallic: ['3M', '5M'],
+    Glitter:  ['3ML']
+  };
+  // Per-color nib overrides: code → array of nib labels (replaces family default)
+  const POSCA_NIB_OVERRIDES = {
+    '255': ['1M', '3M', '5M', '7M', '8K', '17K'],
+    '24':  ['1M', '3M', '5M', '7M', '8K', '17K']
+  };
+  function nibsForColor(family, code) {
+    if (POSCA_NIB_OVERRIDES[code]) return POSCA_NIB_OVERRIDES[code];
+    return POSCA_NIBS_BY_FAMILY[family] || [];
+  }
+
   // Active brand: 'copic' (default) or 'posca'. Stored separately so brand
   // switch survives reloads. Switching brands does a full reload — simpler
   // and fast (~80ms) compared to in-place rebuild.
@@ -1070,35 +1190,105 @@
   const DIVIDERS = currentBrand === 'posca' ? new Set() : new Set(['E', 'W']);
 
   function textColorFor(hex) {
-    const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
-    const lum = (0.299*r + 0.587*g + 0.114*b);
-    return lum > 150 ? '#111' : '#fff';
+    // WCAG relative luminance — pick whichever of black/white yields the
+    // higher contrast ratio against this swatch background. The previous
+    // "lum > 150" shortcut put white text on saturated mid-tones (pink,
+    // emerald, sky blue) where black actually has 2-3× more contrast.
+    const r = parseInt(hex.slice(1,3),16) / 255;
+    const g = parseInt(hex.slice(3,5),16) / 255;
+    const b = parseInt(hex.slice(5,7),16) / 255;
+    const f = function(c) { return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+    const L = 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+    const cWhite = 1.05 / (L + 0.05);
+    const cBlack = (L + 0.05) / 0.05;
+    return cBlack >= cWhite ? '#111' : '#fff';
+  }
+
+  function fgKindFor(hex) {
+    return textColorFor(hex) === '#fff' ? 'light' : 'dark';
+  }
+
+  function makeMiniSwatch(family, code, name, hex) {
+    const fg = textColorFor(hex);
+    const mini = document.createElement('div');
+    mini.className = 'mini missing';
+    mini.style.background = hex;
+    mini.style.color = fg;
+    mini.dataset.code = code;
+    mini.dataset.family = family;
+    mini.dataset.name = name;
+    mini.dataset.fg = fgKindFor(hex);
+    mini.dataset.search = (code + ' ' + name).toLowerCase();
+    mini.setAttribute('role', 'button');
+    mini.setAttribute('tabindex', '0');
+    mini.setAttribute('aria-pressed', 'false');
+    mini.title = code + ' · ' + name;
+    const label = document.createElement('span');
+    label.className = 'mini-label';
+    label.textContent = code;
+    mini.appendChild(label);
+    return mini;
+  }
+
+  function makeCardSwatch(family, code, name, hex) {
+    const fg = textColorFor(hex);
+    const sw = document.createElement('div');
+    sw.className = 'swatch missing';
+    sw.style.background = hex;
+    sw.style.color = fg;
+    sw.dataset.code = code;
+    sw.dataset.family = family;
+    sw.dataset.name = name;
+    sw.dataset.fg = fgKindFor(hex);
+    sw.dataset.search = (code + ' ' + name).toLowerCase();
+    sw.setAttribute('role', 'button');
+    sw.setAttribute('tabindex', '0');
+    sw.setAttribute('aria-pressed', 'false');
+    sw.title = code + ' · ' + name;
+
+    const codeEl = document.createElement('div');
+    codeEl.className = 'swatch-code';
+    codeEl.textContent = code;
+    sw.appendChild(codeEl);
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'swatch-name';
+    nameEl.textContent = name;
+    sw.appendChild(nameEl);
+
+    if (currentBrand === 'posca') {
+      const nibs = nibsForColor(family, code);
+      if (nibs.length) {
+        const nibRow = document.createElement('div');
+        nibRow.className = 'swatch-nibs';
+        nibRow.setAttribute('aria-label', 'Available pen sizes');
+        nibs.forEach(function(n) {
+          const chip = document.createElement('span');
+          chip.className = 'nib-chip';
+          chip.textContent = n;
+          nibRow.appendChild(chip);
+        });
+        sw.appendChild(nibRow);
+      }
+    }
+    return sw;
   }
 
   function buildUI() {
     const spectrumStrip = document.getElementById('spectrumStrip');
     const carouselTrack = document.getElementById('carouselTrack');
+    // Posca's 68 colors fit comfortably as full cards in the spectrum view —
+    // tiny mini-tiles waste the space and hide the nib info. Copic's 358
+    // colors still need the dense mini grid.
+    const useCardSpectrum = currentBrand === 'posca';
 
     const stripFrag = document.createDocumentFragment();
     COLORS.forEach(([family, code, name, hex]) => {
-      const fg = textColorFor(hex);
-      const mini = document.createElement('div');
-      mini.className = 'mini missing';
-      mini.style.background = hex;
-      mini.style.color = fg;
-      mini.dataset.code = code;
-      mini.dataset.family = family;
-      mini.dataset.name = name;
-      mini.dataset.search = (code + ' ' + name).toLowerCase();
-      mini.setAttribute('role', 'button');
-      mini.setAttribute('tabindex', '0');
-      mini.setAttribute('aria-pressed', 'false');
-      mini.title = code + ' · ' + name;
-      const label = document.createElement('span');
-      label.className = 'mini-label';
-      label.textContent = code;
-      mini.appendChild(label);
-      stripFrag.appendChild(mini);
+      stripFrag.appendChild(
+        useCardSpectrum
+          ? makeCardSwatch(family, code, name, hex)
+          : makeMiniSwatch(family, code, name, hex)
+      );
     });
     spectrumStrip.appendChild(stripFrag);
 
@@ -1117,19 +1307,7 @@
       const grid = document.createElement('div');
       grid.className = 'grid';
       famColors.forEach(([, code, name, hex]) => {
-        const fg = textColorFor(hex);
-        const sw = document.createElement('div');
-        sw.className = 'swatch missing';
-        sw.style.background = hex;
-        sw.style.color = fg;
-        sw.dataset.code = code;
-        sw.dataset.name = name;
-        sw.dataset.search = (code + ' ' + name).toLowerCase();
-        sw.setAttribute('role', 'button');
-        sw.setAttribute('tabindex', '0');
-        sw.setAttribute('aria-pressed', 'false');
-        sw.innerHTML = '<div class="swatch-code">' + code + '</div><div class="swatch-name">' + name + '</div>';
-        grid.appendChild(sw);
+        grid.appendChild(makeCardSwatch(famCode, code, name, hex));
       });
       slide.appendChild(grid);
       trackFrag.appendChild(slide);
@@ -1652,9 +1830,10 @@
     } catch(e) {}
     gotoSlide(initialSlide);
 
-    // Brand switcher
-    const brandBtns = document.querySelectorAll('.brand-switch .filter-pill[data-brand]');
+    // Brand switcher (top header bar, not in toolbar)
+    const brandBtns = document.querySelectorAll('.brand-tab[data-brand]');
     brandBtns.forEach(function(btn) {
+      btn.setAttribute('aria-pressed', btn.dataset.brand === currentBrand ? 'true' : 'false');
       if (btn.dataset.brand === currentBrand) btn.classList.add('active');
       btn.addEventListener('click', function() {
         const newBrand = btn.dataset.brand;
