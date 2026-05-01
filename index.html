@@ -511,10 +511,10 @@
   .mini-label {
     line-height: 1;
     text-shadow: 0 1px 1px rgba(0,0,0,0.25);
-    opacity: 0;
+    opacity: 1;
     transition: opacity var(--dur) var(--ease);
   }
-  body.show-codes .mini-label { opacity: 1; }
+  body.hide-codes .mini-label { opacity: 0; }
 
   /* ═══════ Family grid (swatches) ═══════ */
   .family-slide { padding: 4px; }
@@ -693,7 +693,6 @@
 
   @media (max-width: 700px) {
     body { padding: var(--s-4) var(--s-4) var(--s-7); }
-    .mini-label { opacity: 1; }
     .toolbar {
       margin: 0 calc(-1 * var(--s-4)) var(--s-5);
       padding: var(--s-2) var(--s-4);
@@ -752,7 +751,7 @@
         </button>
       </div>
     </div>
-    <button class="ghost-btn" id="codeToggle" aria-label="Show codes" title="Show codes (c)" aria-pressed="false">
+    <button class="ghost-btn" id="codeToggle" aria-label="Hide codes" title="Hide codes (c)" aria-pressed="false">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
     </button>
     <span class="toolbar-divider" aria-hidden="true"></span>
@@ -1397,12 +1396,19 @@
       });
     });
 
-    // Codes toggle
+    // Codes toggle (codes shown by default, button pressed = codes hidden)
     const codeToggle = document.getElementById('codeToggle');
+    try {
+      if (localStorage.getItem('copic-codes-hidden') === 'true') {
+        document.body.classList.add('hide-codes');
+        codeToggle.setAttribute('aria-pressed', 'true');
+      }
+    } catch(e) {}
     codeToggle.addEventListener('click', function() {
       const next = codeToggle.getAttribute('aria-pressed') !== 'true';
       codeToggle.setAttribute('aria-pressed', next ? 'true' : 'false');
-      document.body.classList.toggle('show-codes', next);
+      document.body.classList.toggle('hide-codes', next);
+      try { localStorage.setItem('copic-codes-hidden', next ? 'true' : 'false'); } catch(e) {}
     });
 
     // Search (with expand/collapse)
