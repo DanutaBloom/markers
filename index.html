@@ -1392,6 +1392,7 @@
         if (filter === 'all') document.body.removeAttribute('data-filter');
         else document.body.setAttribute('data-filter', filter);
         filterBtns.forEach(function(b) { b.classList.toggle('active', b === btn); });
+        try { localStorage.setItem('copic-filter', filter); } catch(e) {}
         checkEmptyState();
       });
     });
@@ -1504,6 +1505,7 @@
       chips.forEach(function(chip) {
         chip.classList.toggle('active', chip.dataset.jump === targetJump);
       });
+      try { localStorage.setItem('copic-slide', String(wrapped)); } catch(e) {}
     }
 
     prevFamilyBtn.addEventListener('click', function() { gotoSlide(currentSlide - 1); });
@@ -1522,7 +1524,22 @@
       });
     });
 
-    gotoSlide(0);
+    // Restore last-used view filter and family slide on load
+    let initialSlide = 0;
+    try {
+      const savedFilter = localStorage.getItem('copic-filter');
+      if (savedFilter === 'owned' || savedFilter === 'missing') {
+        document.body.setAttribute('data-filter', savedFilter);
+        filterBtns.forEach(function(b) {
+          b.classList.toggle('active', b.dataset.filter === savedFilter);
+        });
+      }
+      const savedSlide = parseInt(localStorage.getItem('copic-slide'), 10);
+      if (!isNaN(savedSlide) && savedSlide >= 0 && savedSlide < carouselSlides.length) {
+        initialSlide = savedSlide;
+      }
+    } catch(e) {}
+    gotoSlide(initialSlide);
 
     // Scroll-to-top
     const scrollTopBtn = document.getElementById('scrollTop');
