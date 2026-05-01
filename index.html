@@ -8,7 +8,7 @@
   // Order: stored preference → system preference → light fallback.
   (function() {
     try {
-      var stored = localStorage.getItem('copic-theme');
+      var stored = localStorage.getItem('marker-theme');
       var theme;
       if (stored === 'light' || stored === 'dark') {
         theme = stored;
@@ -394,6 +394,13 @@
     touch-action: manipulation;
   }
   .filter-pill:hover { color: var(--text); }
+  /* Brand switcher: same shape as filter pills but accent-tinted active state
+     so it reads as primary navigation, not a secondary view filter. */
+  .brand-switch .filter-pill.active {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .brand-switch { margin-right: var(--s-2); }
   .filter-pill.active {
     background: var(--bg-elevated);
     color: var(--text);
@@ -758,6 +765,11 @@
 
 <nav class="toolbar" aria-label="Controls">
   <div class="toolbar-row">
+    <div class="filter-group brand-switch" role="group" aria-label="Marker brand">
+      <button class="filter-pill" data-brand="copic">Copic</button>
+      <button class="filter-pill" data-brand="posca">Posca</button>
+    </div>
+    <span class="toolbar-divider" aria-hidden="true"></span>
     <div class="search-wrap" id="searchWrap">
       <button class="ghost-btn" id="searchToggle" aria-label="Search" title="Search (/)" aria-expanded="false">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -815,29 +827,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
     </button>
   </div>
-  <div class="family-nav" aria-label="Jump to family">
-    <button class="chip" data-jump="spectrum">All</button>
-    <span class="chip-divider" aria-hidden="true"></span>
-    <button class="chip" data-jump="family-Y">Y</button>
-    <button class="chip" data-jump="family-YG">YG</button>
-    <button class="chip" data-jump="family-G">G</button>
-    <button class="chip" data-jump="family-BG">BG</button>
-    <button class="chip" data-jump="family-B">B</button>
-    <button class="chip" data-jump="family-BV">BV</button>
-    <button class="chip" data-jump="family-V">V</button>
-    <button class="chip" data-jump="family-RV">RV</button>
-    <button class="chip" data-jump="family-R">R</button>
-    <button class="chip" data-jump="family-YR">YR</button>
-    <button class="chip" data-jump="family-E">E</button>
-    <span class="chip-divider" aria-hidden="true"></span>
-    <button class="chip" data-jump="family-C">C</button>
-    <button class="chip" data-jump="family-N">N</button>
-    <button class="chip" data-jump="family-T">T</button>
-    <button class="chip" data-jump="family-W">W</button>
-    <span class="chip-divider" aria-hidden="true"></span>
-    <button class="chip" data-jump="family-Achromatic">0/100</button>
-    <button class="chip" data-jump="family-F">F</button>
-  </div>
+  <div class="family-nav" id="familyNav" aria-label="Jump to family"></div>
   <div class="carousel-track" id="carouselTrack">
     <div class="carousel-slide" id="spectrum" data-family="spectrum" data-family-name="All">
       <div class="spectrum-strip" id="spectrumStrip"></div>
@@ -867,7 +857,7 @@
 </button>
 
 <script>
-  const FAMILIES = [
+  const COPIC_FAMILIES = [
     { code: 'Y',  name: 'Yellow' },
     { code: 'YG', name: 'Yellow Green' },
     { code: 'G',  name: 'Green' },
@@ -883,11 +873,11 @@
     { code: 'N',  name: 'Neutral Gray' },
     { code: 'T',  name: 'Toner Gray' },
     { code: 'W',  name: 'Warm Gray' },
-    { code: 'Achromatic', name: 'Blender / Black' },
+    { code: 'Achromatic', name: 'Blender / Black', chipLabel: '0/100' },
     { code: 'F',  name: 'Fluorescent' }
   ];
 
-  const COLORS = [
+  const COPIC_COLORS = [
     ['Y','Y0000','Yellow Fluorite','#FFFEF7'],['Y','Y000','Pale Lemon','#FFFCE5'],['Y','Y00','Barium Yellow','#FFFBCC'],
     ['Y','Y02','Canary Yellow','#FFF59C'],['Y','Y04','Acacia','#FFF06C'],['Y','Y06','Yellow','#FFE651'],
     ['Y','Y08','Acid Yellow','#FFE838'],['Y','Y11','Pale Yellow','#FFFCD1'],['Y','Y13','Lemon Yellow','#FEF4A0'],
@@ -1013,6 +1003,72 @@
     ['F','FBG2','Fluorescent Dull Blue Green','#8ECBC8'],['F','FB2','Fluorescent Dull Blue','#92B4D0']
   ];
 
+  // Posca data — hex values are approximations from public references
+  // (PoscART tip-sampling table + posca.com). Glitter codes use a 'G' prefix
+  // to disambiguate from standard codes that share the same number.
+  const POSCA_FAMILIES = [
+    { code: 'Standard', name: 'Standard' },
+    { code: 'Pastel',   name: 'Pastel' },
+    { code: 'Fluo',     name: 'Fluo' },
+    { code: 'Metallic', name: 'Metallic' },
+    { code: 'Glitter',  name: 'Glitter' }
+  ];
+
+  const POSCA_COLORS = [
+    ['Standard','255','White','#FFFFFF'],['Standard','24','Black','#000000'],
+    ['Standard','2','Yellow','#FFF102'],['Standard','3','Bright Yellow','#ED972C'],
+    ['Standard','4','Orange','#E6702B'],['Standard','5','Light Green','#85C167'],
+    ['Standard','6','Green','#079949'],['Standard','7','Khaki Green','#434433'],
+    ['Standard','8','Light Blue','#5BC3E7'],['Standard','9','Navy Blue','#17344F'],
+    ['Standard','10','Prussian Blue','#323F7C'],['Standard','11','Fuchsia','#992265'],
+    ['Standard','12','Violet','#694087'],['Standard','13','Pink','#E05794'],
+    ['Standard','14','Dark Red','#9B2330'],['Standard','15','Red','#DA2229'],
+    ['Standard','17','Powder Pink','#EACECB'],['Standard','19','Ochre','#F5BD30'],
+    ['Standard','20','Chestnut','#BB6449'],['Standard','21','Brown','#6F4630'],
+    ['Standard','22','Dark Brown','#4C2C30'],['Standard','25','Gold','#A18B44'],
+    ['Standard','26','Silver','#BCBEBD'],['Standard','31','Emerald Green','#3CB292'],
+    ['Standard','33','Blue','#025094'],['Standard','34','Lilac','#9686B2'],
+    ['Standard','37','Grey','#A0A09F'],['Standard','42','Bronze','#B68566'],
+    ['Standard','45','Beige','#D4BE86'],['Standard','46','Ivory','#EDDF9D'],
+    ['Standard','48','Sky Blue','#6F93C0'],['Standard','51','Light Pink','#F1BECF'],
+    ['Standard','54','Light Orange','#EFA25F'],['Standard','56','Ruby Red','#A92428'],
+    ['Standard','57','Raspberry','#B84775'],['Standard','60','Red Wine','#6F0932'],
+    ['Standard','61','Slate Grey','#3C5161'],['Standard','66','Coral Pink','#FA9D8F'],
+    ['Standard','68','Satin Pink','#E6B6A2'],['Standard','72','Apple Green','#71B943'],
+    ['Standard','73','Straw Yellow','#FFDE7D'],['Standard','82','Deep Grey','#646465'],
+    ['Standard','83','English Green','#006144'],['Standard','84','Cacao Brown','#6A2926'],
+    ['Pastel','P2','Sunshine Yellow','#F7E872'],['Pastel','P4','Apricot','#F5BD84'],
+    ['Pastel','P6','Aqua Green','#73DCD5'],['Pastel','P11','Lavender','#C181D1'],
+    ['Pastel','P33','Glacier Blue','#69CAF8'],
+    ['Fluo','F2','Fluorescent Yellow','#FEFF2E'],['Fluo','F4','Fluorescent Orange','#FF7143'],
+    ['Fluo','F6','Fluorescent Green','#03BF6E'],['Fluo','F13','Fluorescent Pink','#FF3EB5'],
+    ['Fluo','F15','Fluorescent Red','#FF5155'],['Fluo','F54','Fluorescent Light Orange','#FEFE6E'],
+    ['Metallic','M6','Metallic Green','#58A59A'],['Metallic','M12','Metallic Violet','#856CA2'],
+    ['Metallic','M13','Metallic Pink','#A66E96'],['Metallic','M15','Metallic Red','#BF6F58'],
+    ['Metallic','M33','Metallic Blue','#5D99AE'],
+    ['Glitter','G2','Glitter Yellow','#C1B100'],['Glitter','G4','Glitter Orange','#C37237'],
+    ['Glitter','G6','Glitter Green','#669959'],['Glitter','G8','Glitter Light Blue','#4594AF'],
+    ['Glitter','G12','Glitter Violet','#725899'],['Glitter','G13','Glitter Pink','#BB7E91'],
+    ['Glitter','G15','Glitter Red','#BD5F74'],['Glitter','G33','Glitter Dark Blue','#056CAB']
+  ];
+
+  // Active brand: 'copic' (default) or 'posca'. Stored separately so brand
+  // switch survives reloads. Switching brands does a full reload — simpler
+  // and fast (~80ms) compared to in-place rebuild.
+  const BRAND_KEY = 'marker-brand';
+  const currentBrand = (function() {
+    try {
+      const v = localStorage.getItem(BRAND_KEY);
+      return v === 'posca' ? 'posca' : 'copic';
+    } catch(e) { return 'copic'; }
+  })();
+  document.body.dataset.brand = currentBrand;
+  const FAMILIES = currentBrand === 'posca' ? POSCA_FAMILIES : COPIC_FAMILIES;
+  const COLORS   = currentBrand === 'posca' ? POSCA_COLORS   : COPIC_COLORS;
+  // Insert a visual divider AFTER the chip whose code is in this set.
+  // Copic groups: color-spectrum | C/N/T/W gray | Achromatic + Fluo.
+  const DIVIDERS = currentBrand === 'posca' ? new Set() : new Set(['E', 'W']);
+
   function textColorFor(hex) {
     const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
     const lum = (0.299*r + 0.587*g + 0.114*b);
@@ -1079,6 +1135,33 @@
       trackFrag.appendChild(slide);
     });
     carouselTrack.appendChild(trackFrag);
+
+    // Family nav chips
+    const familyNav = document.getElementById('familyNav');
+    const navFrag = document.createDocumentFragment();
+    const allBtn = document.createElement('button');
+    allBtn.className = 'chip';
+    allBtn.dataset.jump = 'spectrum';
+    allBtn.textContent = 'All';
+    navFrag.appendChild(allBtn);
+    const firstDivider = document.createElement('span');
+    firstDivider.className = 'chip-divider';
+    firstDivider.setAttribute('aria-hidden', 'true');
+    navFrag.appendChild(firstDivider);
+    FAMILIES.forEach(function({ code, chipLabel }) {
+      const btn = document.createElement('button');
+      btn.className = 'chip';
+      btn.dataset.jump = 'family-' + code;
+      btn.textContent = chipLabel || code;
+      navFrag.appendChild(btn);
+      if (DIVIDERS.has(code)) {
+        const d = document.createElement('span');
+        d.className = 'chip-divider';
+        d.setAttribute('aria-hidden', 'true');
+        navFrag.appendChild(d);
+      }
+    });
+    familyNav.appendChild(navFrag);
   }
 
   buildUI();
@@ -1093,8 +1176,11 @@
     const carouselProgressFill = document.getElementById('carouselProgressFill');
     const total = COLORS.length;
 
-    const STORAGE_KEY = 'copic-owned';
-    const THEME_KEY = 'copic-theme';
+    const STORAGE_KEY = currentBrand + '-owned';
+    const SLIDE_KEY = currentBrand + '-slide';
+    const THEME_KEY = 'marker-theme';
+    const FILTER_KEY = 'marker-filter';
+    const CODES_HIDDEN_KEY = 'marker-codes-hidden';
 
     // Resilient storage
     const storage = (function() {
@@ -1410,7 +1496,7 @@
         if (filter === 'all') document.body.removeAttribute('data-filter');
         else document.body.setAttribute('data-filter', filter);
         filterBtns.forEach(function(b) { b.classList.toggle('active', b === btn); });
-        try { localStorage.setItem('copic-filter', filter); } catch(e) {}
+        try { localStorage.setItem(FILTER_KEY, filter); } catch(e) {}
         checkEmptyState();
       });
     });
@@ -1418,7 +1504,7 @@
     // Codes toggle (codes shown by default, button pressed = codes hidden)
     const codeToggle = document.getElementById('codeToggle');
     try {
-      if (localStorage.getItem('copic-codes-hidden') === 'true') {
+      if (localStorage.getItem(CODES_HIDDEN_KEY) === 'true') {
         document.body.classList.add('hide-codes');
         codeToggle.setAttribute('aria-pressed', 'true');
       }
@@ -1427,7 +1513,7 @@
       const next = codeToggle.getAttribute('aria-pressed') !== 'true';
       codeToggle.setAttribute('aria-pressed', next ? 'true' : 'false');
       document.body.classList.toggle('hide-codes', next);
-      try { localStorage.setItem('copic-codes-hidden', next ? 'true' : 'false'); } catch(e) {}
+      try { localStorage.setItem(CODES_HIDDEN_KEY, next ? 'true' : 'false'); } catch(e) {}
     });
 
     // Search (with expand/collapse)
@@ -1530,7 +1616,7 @@
       chips.forEach(function(chip) {
         chip.classList.toggle('active', chip.dataset.jump === targetJump);
       });
-      try { localStorage.setItem('copic-slide', String(wrapped)); } catch(e) {}
+      try { localStorage.setItem(SLIDE_KEY, String(wrapped)); } catch(e) {}
     }
 
     prevFamilyBtn.addEventListener('click', function() { gotoSlide(currentSlide - 1); });
@@ -1552,19 +1638,31 @@
     // Restore last-used view filter and family slide on load
     let initialSlide = 0;
     try {
-      const savedFilter = localStorage.getItem('copic-filter');
+      const savedFilter = localStorage.getItem(FILTER_KEY);
       if (savedFilter === 'owned' || savedFilter === 'missing') {
         document.body.setAttribute('data-filter', savedFilter);
         filterBtns.forEach(function(b) {
           b.classList.toggle('active', b.dataset.filter === savedFilter);
         });
       }
-      const savedSlide = parseInt(localStorage.getItem('copic-slide'), 10);
+      const savedSlide = parseInt(localStorage.getItem(SLIDE_KEY), 10);
       if (!isNaN(savedSlide) && savedSlide >= 0 && savedSlide < carouselSlides.length) {
         initialSlide = savedSlide;
       }
     } catch(e) {}
     gotoSlide(initialSlide);
+
+    // Brand switcher
+    const brandBtns = document.querySelectorAll('.brand-switch .filter-pill[data-brand]');
+    brandBtns.forEach(function(btn) {
+      if (btn.dataset.brand === currentBrand) btn.classList.add('active');
+      btn.addEventListener('click', function() {
+        const newBrand = btn.dataset.brand;
+        if (newBrand === currentBrand) return;
+        try { localStorage.setItem(BRAND_KEY, newBrand); } catch(e) {}
+        window.location.reload();
+      });
+    });
 
     // Scroll-to-top
     const scrollTopBtn = document.getElementById('scrollTop');
