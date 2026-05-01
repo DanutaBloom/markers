@@ -168,6 +168,22 @@
     overflow: hidden; clip: rect(0,0,0,0);
     white-space: nowrap; border: 0;
   }
+  .skip-link {
+    position: absolute;
+    top: var(--s-3); left: var(--s-3);
+    padding: var(--s-2) var(--s-4);
+    background: var(--bg-elevated);
+    color: var(--text);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--r-2);
+    text-decoration: none;
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    transform: translateY(-200%);
+    transition: transform var(--dur-fast) var(--ease);
+    z-index: 100;
+  }
+  .skip-link:focus { transform: translateY(0); outline: 2px solid var(--accent); }
 
   /* Search wrap: button + expanding field */
   .search-wrap {
@@ -235,25 +251,25 @@
   }
 
   /* ═══════ Filter dimming (compositor-only, no filter property) ═══════ */
+  /* Dim non-matching swatches but keep them clickable so users can toggle
+     ownership in any view without switching back to "All" first. */
   body[data-filter="owned"] .mini.missing,
   body[data-filter="owned"] .swatch.missing,
   body[data-filter="missing"] .mini.owned,
   body[data-filter="missing"] .swatch.owned {
-    opacity: 0.18;
-    pointer-events: none;
+    opacity: 0.32;
   }
   :root[data-theme="dark"] body[data-filter="owned"] .mini.missing,
   :root[data-theme="dark"] body[data-filter="owned"] .swatch.missing,
   :root[data-theme="dark"] body[data-filter="missing"] .mini.owned,
   :root[data-theme="dark"] body[data-filter="missing"] .swatch.owned {
-    opacity: 0.22;
+    opacity: 0.36;
   }
 
   /* ═══════ Search highlighting (avoid filter property) ═══════ */
   body.searching .mini:not(.match),
   body.searching .swatch:not(.match) {
-    opacity: 0.15;
-    pointer-events: none;
+    opacity: 0.28;
   }
   body.searching .mini.match,
   body.searching .swatch.match {
@@ -670,7 +686,7 @@
     font-family: var(--font-serif);
     font-style: italic;
     font-size: var(--fs-xs);
-    color: var(--text-soft);
+    color: var(--text-muted);
     line-height: 1.6;
     text-align: center;
   }
@@ -719,6 +735,7 @@
 </style>
 </head>
 <body>
+<a class="skip-link" href="#main-content">Skip to colors</a>
 <div class="container">
 
 <nav class="toolbar" aria-label="Controls">
@@ -729,7 +746,7 @@
       </button>
       <div class="search-field">
         <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="search" id="searchInput" placeholder="Search…" autocomplete="off" spellcheck="false">
+        <input type="search" id="searchInput" placeholder="Search…" aria-label="Search colors" autocomplete="off" spellcheck="false">
         <button class="clear-search" id="clearSearch" aria-label="Close search" tabindex="-1">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
@@ -752,9 +769,12 @@
       <span id="themeIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>
       <span id="themeLabel" class="visually-hidden">Dark</span>
     </button>
-    <input type="file" id="importFile" accept=".txt,.json" style="display: none;">
+    <input type="file" id="importFile" accept=".txt,.json" aria-label="Import inventory file" style="display: none;">
   </div>
 </nav>
+
+<main id="main-content">
+<h1 class="visually-hidden">Copic Sketch</h1>
 
 <section class="carousel-section" id="carousel-section">
   <div class="carousel-header">
@@ -810,6 +830,8 @@
     <span id="emptyStateText">No colors match your filter.</span>
   </div>
 </section>
+
+</main>
 
 <footer>
   Hex values are approximations from public Copic references and will differ on paper versus screen.
@@ -1469,8 +1491,10 @@
       carouselSlides.forEach(function(s, i) {
         const active = i === wrapped;
         s.classList.toggle('active', active);
-        if (active) s.removeAttribute('aria-hidden');
-        else s.setAttribute('aria-hidden', 'true');
+        // `inert` removes off-screen slides from tab order and the a11y tree,
+        // which fixes axe `aria-hidden-focus` and the long Tab-walk on load.
+        if (active) s.removeAttribute('inert');
+        else s.setAttribute('inert', '');
       });
       const slide = carouselSlides[wrapped];
       carouselTitle.textContent = slide.dataset.familyName || 'All';
