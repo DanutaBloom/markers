@@ -476,22 +476,33 @@
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
-    transition: transform 0.2s var(--ease-spring), opacity 0.2s var(--ease);
+    /* 5-point polygon at the top-right corner so clip-path can animate
+       into the .owned notch without a geometric jump on toggle. */
+    clip-path: polygon(0 0, 100% 0, 100% 0, 100% 100%, 0 100%);
+    transition:
+      transform 0.35s var(--ease-spring),
+      clip-path 0.35s var(--ease-spring),
+      box-shadow 0.2s var(--ease),
+      opacity 0.2s var(--ease);
     box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04);
   }
   /* Hover only on devices that actually support it */
   @media (hover: hover) {
     .mini:hover {
-      transform: scale(1.18);
+      transform: scale(1.08);
       z-index: 5;
-      box-shadow: 0 6px 16px rgba(20, 20, 19, 0.2), inset 0 0 0 1px rgba(0,0,0,0.08);
+      box-shadow: 0 6px 16px rgba(20, 20, 19, 0.18), inset 0 0 0 1px rgba(0,0,0,0.08);
     }
     :root[data-theme="dark"] .mini:hover {
       box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255,255,255,0.08);
     }
     .mini:hover .mini-label { opacity: 1; }
   }
-  .mini:active { transform: scale(0.95); }
+  /* Quick press in, then the base transition springs it back out */
+  .mini:active {
+    transform: scale(0.94);
+    transition: transform 0.08s var(--ease);
+  }
   .mini:focus-visible {
     outline: 2px solid var(--ink);
     outline-offset: 3px;
@@ -504,7 +515,6 @@
     content: '';
     position: absolute;
     inset: 0;
-    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
     box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06);
     pointer-events: none;
   }
@@ -536,7 +546,13 @@
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
-    transition: transform 0.2s var(--ease-spring), opacity 0.2s var(--ease);
+    /* 5-point polygon so the .owned corner notch animates instead of jumping */
+    clip-path: polygon(0 0, 100% 0, 100% 0, 100% 100%, 0 100%);
+    transition:
+      transform 0.35s var(--ease-spring),
+      clip-path 0.35s var(--ease-spring),
+      box-shadow 0.2s var(--ease),
+      opacity 0.2s var(--ease);
     box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04);
   }
   @media (hover: hover) {
@@ -549,7 +565,11 @@
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255,255,255,0.06);
     }
   }
-  .swatch:active { transform: scale(0.97); }
+  /* Quick press in, then base transition springs it back */
+  .swatch:active {
+    transform: scale(0.96);
+    transition: transform 0.08s var(--ease);
+  }
   .swatch:focus-visible {
     outline: 2px solid var(--ink);
     outline-offset: 3px;
@@ -561,7 +581,6 @@
     content: '';
     position: absolute;
     inset: 0;
-    clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
     box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06);
     pointer-events: none;
   }
