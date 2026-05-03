@@ -640,54 +640,6 @@
     pointer-events: none;
   }
 
-  /* ═══════ Posca-specific layout ═══════ */
-  /* The All view shows cards (not minis) since 68 colors don't need
-     compression. Cards are taller to accommodate the nib-chip row. */
-  body[data-brand="posca"] .spectrum-strip {
-    grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
-    gap: 8px;
-  }
-  body[data-brand="posca"] .swatch {
-    aspect-ratio: 1 / 1;
-    padding: 12px;
-  }
-  body[data-brand="posca"] .grid {
-    grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
-    gap: 8px;
-  }
-
-  /* Pen-size chips inside a Posca swatch — small monospace tags below
-     code+name, semi-transparent so they sit on the swatch color. */
-  .swatch-nibs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 3px;
-    margin-top: auto;
-    padding-top: 6px;
-  }
-  .nib-chip {
-    display: inline-flex;
-    align-items: center;
-    height: 16px;
-    padding: 0 5px;
-    font-family: var(--font-mono);
-    font-size: 9px;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    border-radius: 3px;
-    pointer-events: none;
-  }
-  /* Chip backgrounds are intentionally close to opaque so contrast is
-     decoupled from the swatch color — readable on any hue, including the
-     mid-tone greens/blues where translucent overlays disappear. */
-  .swatch[data-fg="light"] .nib-chip {
-    background: rgba(255,255,255,0.78);
-    color: rgba(0,0,0,0.82);
-  }
-  .swatch[data-fg="dark"] .nib-chip {
-    background: rgba(0,0,0,0.62);
-    color: rgba(255,255,255,0.96);
-  }
   .swatch-code {
     font-family: var(--font-mono);
     font-size: var(--fs-sm);
@@ -1105,12 +1057,16 @@
   // Posca data — hex values are approximations from public references
   // (PoscART tip-sampling table + posca.com). Glitter codes use a 'G' prefix
   // to disambiguate from standard codes that share the same number.
+  // Families = pen-tip sizes (not color categories) so the user can mark
+  // ownership PER nib: e.g. own PC-3M Yellow but not PC-5M Yellow.
   const POSCA_FAMILIES = [
-    { code: 'Standard', name: 'Standard' },
-    { code: 'Pastel',   name: 'Pastel' },
-    { code: 'Fluo',     name: 'Fluo' },
-    { code: 'Metallic', name: 'Metallic' },
-    { code: 'Glitter',  name: 'Glitter' }
+    { code: '1M',  name: 'PC-1M · Extra fine 0.7 mm',     chipLabel: '1M'  },
+    { code: '3M',  name: 'PC-3M · Fine 0.9-1.3 mm',       chipLabel: '3M'  },
+    { code: '5M',  name: 'PC-5M · Medium 1.8-2.5 mm',     chipLabel: '5M'  },
+    { code: '7M',  name: 'PC-7M · Broad 4.5-5.5 mm',      chipLabel: '7M'  },
+    { code: '8K',  name: 'PC-8K · Chisel 8 mm',           chipLabel: '8K'  },
+    { code: '17K', name: 'PC-17K · Extra broad 15 mm',    chipLabel: '17K' },
+    { code: '3ML', name: 'PC-3ML · Glitter fine 0.9-1.3', chipLabel: '3ML' }
   ];
 
   const POSCA_COLORS = [
@@ -1256,45 +1212,30 @@
     nameEl.textContent = name;
     sw.appendChild(nameEl);
 
-    if (currentBrand === 'posca') {
-      const nibs = nibsForColor(family, code);
-      if (nibs.length) {
-        const nibRow = document.createElement('div');
-        nibRow.className = 'swatch-nibs';
-        nibRow.setAttribute('aria-label', 'Available pen sizes');
-        nibs.forEach(function(n) {
-          const chip = document.createElement('span');
-          chip.className = 'nib-chip';
-          chip.textContent = n;
-          nibRow.appendChild(chip);
-        });
-        sw.appendChild(nibRow);
-      }
-    }
     return sw;
   }
 
   function buildUI() {
     const spectrumStrip = document.getElementById('spectrumStrip');
     const carouselTrack = document.getElementById('carouselTrack');
-    // Posca's 68 colors fit comfortably as full cards in the spectrum view —
-    // tiny mini-tiles waste the space and hide the nib info. Copic's 358
-    // colors still need the dense mini grid.
-    const useCardSpectrum = currentBrand === 'posca';
 
+    // Spectrum (All) view: dense mini-grid for both brands. Each Posca mini
+    // represents the *color* (any nib counts as owned). Per-nib detail lives
+    // in the family slides, where each slide is one pen-tip size.
     const stripFrag = document.createDocumentFragment();
     COLORS.forEach(([family, code, name, hex]) => {
-      stripFrag.appendChild(
-        useCardSpectrum
-          ? makeCardSwatch(family, code, name, hex)
-          : makeMiniSwatch(family, code, name, hex)
-      );
+      stripFrag.appendChild(makeMiniSwatch(family, code, name, hex));
     });
     spectrumStrip.appendChild(stripFrag);
 
     const trackFrag = document.createDocumentFragment();
     FAMILIES.forEach(({ code: famCode, name: famName }) => {
-      const famColors = COLORS.filter(c => c[0] === famCode);
+      // Copic: family axis = color category, source row's family equals famCode.
+      // Posca: family axis = nib size, include every color whose available nib
+      // list contains famCode (computed via nibsForColor).
+      const famColors = currentBrand === 'posca'
+        ? COLORS.filter(c => nibsForColor(c[0], c[1]).includes(famCode))
+        : COLORS.filter(c => c[0] === famCode);
       if (famColors.length === 0) return;
 
       const slide = document.createElement('div');
@@ -1306,8 +1247,13 @@
 
       const grid = document.createElement('div');
       grid.className = 'grid';
-      famColors.forEach(([, code, name, hex]) => {
-        grid.appendChild(makeCardSwatch(famCode, code, name, hex));
+      famColors.forEach(([colorFamily, code, name, hex]) => {
+        // Posca: tag every nib-slide swatch with its nib so click + ownership
+        // can resolve to a single (code, nib) pair instead of bulk-toggling
+        // every size. Copic ignores dataset.nib.
+        const sw = makeCardSwatch(colorFamily, code, name, hex);
+        if (currentBrand === 'posca') sw.dataset.nib = famCode;
+        grid.appendChild(sw);
       });
       slide.appendChild(grid);
       trackFrag.appendChild(slide);
@@ -1454,11 +1400,27 @@
     const swatches = Array.from(document.querySelectorAll('.swatch'));
 
     function currentOwnedSet() {
+      // Distinct owned color codes. Copic: matches storage. Posca: "colors
+      // with at least one owned nib" — used for stats, export, import-confirm.
       const set = new Set();
       swatches.forEach(function(s) {
         if (s.classList.contains('owned')) set.add(s.dataset.code);
       });
       return set;
+    }
+
+    function currentOwnedNibs() {
+      // Posca only: { code: [nib, ...] }, built from nib-slide swatch state.
+      const map = {};
+      swatches.forEach(function(s) {
+        if (!s.classList.contains('owned')) return;
+        const code = s.dataset.code;
+        const nib = s.dataset.nib;
+        if (!nib) return;
+        if (!map[code]) map[code] = [];
+        if (map[code].indexOf(nib) === -1) map[code].push(nib);
+      });
+      return map;
     }
 
     function setTileOwned(tile, owned) {
@@ -1473,8 +1435,43 @@
       });
     }
 
+    function updatePoscaSpectrumMini(code) {
+      // Recompute "any nib owned for this color" and reflect on the mini.
+      const anyOwned = swatches.some(function(s) {
+        return s.dataset.code === code && s.classList.contains('owned');
+      });
+      allTiles.forEach(function(t) {
+        if (t.classList.contains('mini') && t.dataset.code === code) {
+          setTileOwned(t, anyOwned);
+        }
+      });
+    }
+
     function applyOwnedSet(set) {
+      // Code-level apply: marks every tile (mini + every nib slot) for any
+      // listed code. For Posca this means "all nibs owned" — the right
+      // semantics for both reset (empty set) and code-only imports.
       allTiles.forEach(function(tile) { setTileOwned(tile, set.has(tile.dataset.code)); });
+      updateStats();
+    }
+
+    function applyPoscaOwned(map) {
+      // Per-nib apply: each nib-slide swatch reflects map[code].includes(nib).
+      // Spectrum minis show "any nib owned for that code".
+      swatches.forEach(function(s) {
+        const code = s.dataset.code;
+        const nib = s.dataset.nib;
+        const owned = !!(nib && map[code] && map[code].indexOf(nib) !== -1);
+        setTileOwned(s, owned);
+      });
+      const ownedCodes = new Set(Object.keys(map).filter(function(k) {
+        return Array.isArray(map[k]) && map[k].length > 0;
+      }));
+      allTiles.forEach(function(t) {
+        if (t.classList.contains('mini')) {
+          setTileOwned(t, ownedCodes.has(t.dataset.code));
+        }
+      });
       updateStats();
     }
 
@@ -1508,19 +1505,25 @@
       const activeSlide = document.querySelector('.carousel-slide.active');
       if (!activeSlide) return;
       const meta = document.getElementById('carouselMeta');
-      const owned = currentOwnedSet();
       let count, slideTotal;
       if (activeSlide.id === 'spectrum') {
-        count = owned.size;
         slideTotal = total;
+        count = 0;
+        activeSlide.querySelectorAll('.mini').forEach(function(t) {
+          if (t.classList.contains('owned')) count++;
+        });
       } else {
         slideTotal = parseInt(activeSlide.dataset.familyTotal, 10) || 0;
         count = 0;
         activeSlide.querySelectorAll('.swatch').forEach(function(s) {
-          if (owned.has(s.dataset.code)) count++;
+          if (s.classList.contains('owned')) count++;
         });
       }
-      meta.innerHTML = '<strong>' + count + '</strong> / ' + slideTotal;
+      const strong = document.createElement('strong');
+      strong.textContent = String(count);
+      meta.textContent = '';
+      meta.appendChild(strong);
+      meta.appendChild(document.createTextNode(' / ' + slideTotal));
       const pct = slideTotal ? (count / slideTotal * 100) : 0;
       carouselProgressFill.style.width = pct + '%';
       checkEmptyState();
@@ -1531,16 +1534,36 @@
     }
 
     function saveOwned() {
-      const owned = Array.from(currentOwnedSet());
-      storage.set(STORAGE_KEY, JSON.stringify(owned));
+      if (currentBrand === 'posca') {
+        storage.set(STORAGE_KEY, JSON.stringify(currentOwnedNibs()));
+      } else {
+        storage.set(STORAGE_KEY, JSON.stringify(Array.from(currentOwnedSet())));
+      }
     }
 
     function loadOwned() {
       storage.get(STORAGE_KEY).then(function(value) {
         if (!value) return;
         try {
-          const arr = JSON.parse(value);
-          applyOwnedSet(new Set(arr));
+          const parsed = JSON.parse(value);
+          if (currentBrand === 'posca') {
+            // Migration: legacy array of codes → all available nibs owned.
+            let map;
+            if (Array.isArray(parsed)) {
+              map = {};
+              parsed.forEach(function(code) {
+                const row = COLORS.find(function(c) { return c[1] === code; });
+                if (row) map[code] = nibsForColor(row[0], code).slice();
+              });
+            } else if (parsed && typeof parsed === 'object') {
+              map = parsed;
+            } else {
+              return;
+            }
+            applyPoscaOwned(map);
+          } else {
+            applyOwnedSet(new Set(parsed));
+          }
         } catch (e) { /* ignore */ }
       });
     }
@@ -1563,12 +1586,44 @@
       tile.addEventListener('click', function() {
         const code = tile.dataset.code;
         const name = tile.dataset.name || '';
-        const newOwned = !tile.classList.contains('owned');
-        syncCode(code, newOwned);
+        const nib = tile.dataset.nib;
+        const isMini = tile.classList.contains('mini');
+
+        let removed, label;
+        if (currentBrand === 'posca' && nib) {
+          // Per-nib toggle on a family-slide swatch (PC-3M Yellow etc).
+          const newOwned = !tile.classList.contains('owned');
+          setTileOwned(tile, newOwned);
+          updatePoscaSpectrumMini(code);
+          removed = !newOwned;
+          label = (name ? code + ' · ' + name : code) + ' (PC-' + nib + ')';
+        } else if (currentBrand === 'posca' && isMini) {
+          // Spectrum mini: bulk toggle every available nib for this color.
+          const anyOwned = swatches.some(function(s) {
+            return s.dataset.code === code && s.classList.contains('owned');
+          });
+          const newOwned = !anyOwned;
+          let nibCount = 0;
+          swatches.forEach(function(s) {
+            if (s.dataset.code === code) {
+              setTileOwned(s, newOwned);
+              nibCount++;
+            }
+          });
+          setTileOwned(tile, newOwned);
+          removed = !newOwned;
+          label = (name ? code + ' · ' + name : code) +
+                  ' (' + nibCount + ' size' + (nibCount === 1 ? '' : 's') + ')';
+        } else {
+          // Copic: toggle the color across the spectrum mini + family card.
+          const newOwned = !tile.classList.contains('owned');
+          syncCode(code, newOwned);
+          removed = !newOwned;
+          label = name ? code + ' · ' + name : code;
+        }
         updateStats();
         saveOwned();
-        const label = name ? code + ' · ' + name : code;
-        showToast((newOwned ? 'Added ' : 'Removed ') + label, !newOwned);
+        showToast((removed ? 'Removed ' : 'Added ') + label, removed);
       });
       tile.addEventListener('keydown', function(e) {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -1587,22 +1642,32 @@
 
     // Export
     exportBtn.addEventListener('click', function() {
+      const date = new Date().toISOString().split('T')[0];
+      const allCodes = Array.from(new Set(COLORS.map(function(c) { return c[1]; })));
       const owned = Array.from(currentOwnedSet()).sort();
-      const allCodes = swatches.map(function(s) { return s.dataset.code; });
       const missing = allCodes.filter(function(c) { return owned.indexOf(c) === -1; }).sort();
+      const brandLabel = currentBrand === 'posca' ? 'POSCA' : 'COPIC SKETCH';
 
-      const text = 'COPIC SKETCH INVENTORY\n' +
-        'Exported: ' + new Date().toISOString().split('T')[0] + '\n\n' +
+      let text = brandLabel + ' INVENTORY\n' +
+        'Exported: ' + date + '\n\n' +
         'OWNED (' + owned.length + '):\n' +
         owned.join(', ') + '\n\n' +
         'MISSING (' + missing.length + '):\n' +
         missing.join(', ');
 
+      if (currentBrand === 'posca') {
+        const map = currentOwnedNibs();
+        const lines = Object.keys(map).sort().map(function(code) {
+          return code + ': ' + map[code].join(', ');
+        });
+        text += '\n\nOWNED PER NIB:\n' + (lines.length ? lines.join('\n') : '(none)');
+      }
+
       const blob = new Blob([text], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'copic-inventory-' + new Date().toISOString().split('T')[0] + '.txt';
+      a.download = currentBrand + '-inventory-' + date + '.txt';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -1622,7 +1687,7 @@
         const text = evt.target.result;
         const parsed = parseImport(text);
         if (parsed.size === 0) {
-          alert('No valid Copic codes found in this file.');
+          alert('No valid ' + (currentBrand === 'posca' ? 'Posca' : 'Copic') + ' codes found in this file.');
           return;
         }
         const current = currentOwnedSet();
