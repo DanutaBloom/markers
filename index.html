@@ -582,36 +582,83 @@
   body.hide-codes .mini-label { opacity: 0; }
 
   /* ═══════ Posca per-marker mini (one tile per color × nib) ═══════ */
-  /* Each Posca tile represents one physical marker — color background +
-     nib label (PC-3M etc) + smaller color code. Nib stays visible when
-     codes are hidden so the 6 yellow tiles never collapse to identical
-     anonymous swatches. */
+  /* Each tile = one physical marker. Sized to stay touch-friendly (≥44px)
+     while keeping density. Nib label primary, color code secondary;
+     either or both can be hidden via the toolbar toggles. */
   body[data-brand="posca"] .spectrum-strip {
-    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-    gap: 4px;
+    grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+    gap: 3px;
   }
   body[data-brand="posca"] .mini {
     flex-direction: column;
-    gap: 2px;
-    padding: 4px 2px;
+    gap: 1px;
+    padding: 3px 2px;
     font-family: var(--font-mono);
   }
   .mini-nib {
     font-family: var(--font-mono);
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
     letter-spacing: -0.02em;
     line-height: 1;
     text-shadow: 0 1px 1px rgba(0,0,0,0.28);
+    transition: opacity var(--dur) var(--ease);
   }
   body[data-brand="posca"] .mini-label {
-    font-size: 9px;
+    font-size: 8px;
     font-weight: 500;
     opacity: 0.82;
   }
-  /* Explicit override — needs higher specificity than the Posca .mini-label
-     rule above, otherwise hide-codes loses on source-order tiebreak. */
+  /* Higher specificity needed — the brand-scoped rule above shares
+     specificity with body.hide-codes .mini-label and would win on order. */
   body[data-brand="posca"].hide-codes .mini-label { opacity: 0; }
+  /* Nib-label visibility toggle (Posca only — Copic minis have no nib el). */
+  body.hide-nibs .mini-nib { opacity: 0; }
+
+  /* ═══════ Posca-only chrome ═══════ */
+  /* Buttons + tiles that only make sense for Posca's 2D structure. CSS
+     hides them on Copic so the toolbar stays clean and the spectrum
+     never renders grouped clones. */
+  body:not([data-brand="posca"]) .posca-only { display: none !important; }
+
+  /* ═══════ Posca grouped tiles (Group toggle) ═══════ */
+  /* When Group is OFF (default): show 310 per-marker tiles, hide the 68
+     grouped clones. When Group is ON: invert. Each grouped tile shows the
+     color + a small "X/N" badge if user owns some-but-not-all sizes. */
+  body[data-brand="posca"]:not(.group-mode) #spectrumStrip .mini.grouped { display: none; }
+  body[data-brand="posca"].group-mode #spectrumStrip .mini:not(.grouped) { display: none; }
+
+  .mini.grouped {
+    /* Slightly bigger labels in group mode — only one label per tile so
+       there's room. Code is the primary affordance here. */
+    font-size: 10px;
+  }
+  body[data-brand="posca"] .mini.grouped .mini-label {
+    font-size: 10px;
+    font-weight: 600;
+    opacity: 1;
+  }
+  body[data-brand="posca"].hide-codes .mini.grouped .mini-label { opacity: 0; }
+  /* Partial-state badge — only renders when user owns some but not all
+     nibs of a color. Sits in the top-left corner so it doesn't collide
+     with the .owned notch on the top-right. */
+  .mini.grouped[data-partial="true"]::before {
+    content: attr(data-owned-count) "/" attr(data-nib-count);
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    font-size: 8px;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    line-height: 1;
+    padding: 2px 4px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.62);
+    color: rgba(255, 255, 255, 0.96);
+    z-index: 2;
+    pointer-events: none;
+    letter-spacing: -0.02em;
+  }
 
   /* ═══════ Family grid (swatches) ═══════ */
   .family-slide { padding: 4px; }
@@ -867,6 +914,12 @@
     </div>
     <button class="ghost-btn" id="codeToggle" aria-label="Hide codes" title="Hide codes (c)" aria-pressed="false">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+    </button>
+    <button class="ghost-btn posca-only" id="nibToggle" aria-label="Hide nib labels" title="Hide nib labels (n)" aria-pressed="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+    </button>
+    <button class="ghost-btn posca-only" id="groupToggle" aria-label="Group sizes per color" title="Group sizes per color (g)" aria-pressed="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect x="3" y="3" width="13" height="13" rx="2"/><rect x="8" y="8" width="13" height="13" rx="2"/></svg>
     </button>
     <span class="toolbar-divider" aria-hidden="true"></span>
     <button class="ghost-btn" id="importBtn" aria-label="Import" title="Import">
@@ -1267,6 +1320,11 @@
     // pair — six yellows for Y2 sit next to each other, each tickable in
     // isolation. This makes the All view a true marker inventory instead
     // of a color-rollup.
+    //
+    // For Posca we ALSO render a parallel set of "grouped" tiles (one per
+    // unique color). The Group toggle in the toolbar swaps which set is
+    // visible via a body class — both sets share ownership state, so the
+    // switch is instant and doesn't reflow when toggled.
     const stripFrag = document.createDocumentFragment();
     COLORS.forEach(([family, code, name, hex]) => {
       if (currentBrand === 'posca') {
@@ -1277,6 +1335,20 @@
         stripFrag.appendChild(makeMiniSwatch(family, code, name, hex));
       }
     });
+    if (currentBrand === 'posca') {
+      const seen = new Set();
+      COLORS.forEach(([family, code, name, hex]) => {
+        if (seen.has(code)) return;
+        seen.add(code);
+        const tile = makeMiniSwatch(family, code, name, hex);
+        tile.classList.add('grouped');
+        const nibCount = nibsForColor(family, code).length;
+        tile.dataset.nibCount = String(nibCount);
+        tile.dataset.ownedCount = '0';
+        tile.title = code + ' · ' + name + ' · ' + nibCount + ' size' + (nibCount === 1 ? '' : 's');
+        stripFrag.appendChild(tile);
+      });
+    }
     spectrumStrip.appendChild(stripFrag);
 
     const trackFrag = document.createDocumentFragment();
@@ -1361,6 +1433,8 @@
     const THEME_KEY = 'marker-theme';
     const FILTER_KEY = 'marker-filter';
     const CODES_HIDDEN_KEY = 'marker-codes-hidden';
+    const NIBS_HIDDEN_KEY = 'marker-nibs-hidden';
+    const GROUP_KEY = 'marker-grouped';
 
     // Resilient storage
     const storage = (function() {
@@ -1499,6 +1573,54 @@
           setTileOwned(tile, owned);
         }
       });
+      syncGroupedTile(code);
+    }
+
+    function syncGroupedTile(code) {
+      // Recompute the grouped tile's state from its component marker tiles.
+      // "Owned" = at least one nib owned; partial = some-but-not-all.
+      const grouped = document.querySelector('#spectrumStrip .mini.grouped[data-code="' + cssEscape(code) + '"]');
+      if (!grouped) return;
+      // Count owned per (code, nib) — use family-slide swatches as truth
+      // (they're the canonical per-nib state and exist for every marker).
+      let owned = 0;
+      let total = 0;
+      swatches.forEach(function(s) {
+        if (s.dataset.code === code && s.dataset.nib) {
+          total++;
+          if (s.classList.contains('owned')) owned++;
+        }
+      });
+      grouped.dataset.ownedCount = String(owned);
+      const partial = owned > 0 && owned < total;
+      setTileOwned(grouped, owned > 0);
+      grouped.dataset.partial = partial ? 'true' : 'false';
+    }
+
+    function syncAllGroupedTiles() {
+      const seen = new Set();
+      swatches.forEach(function(s) {
+        if (s.dataset.code && !seen.has(s.dataset.code)) {
+          seen.add(s.dataset.code);
+          syncGroupedTile(s.dataset.code);
+        }
+      });
+    }
+
+    function cssEscape(s) {
+      return (window.CSS && CSS.escape) ? CSS.escape(s) : String(s).replace(/[^a-zA-Z0-9_-]/g, '\\$&');
+    }
+
+    function bulkToggleColor(code, newOwned) {
+      // Toggle every (code, *) tile — spectrum markers + family-slide cards
+      // for that color. Then refresh the grouped tile to reflect the new
+      // unanimous state.
+      allTiles.forEach(function(tile) {
+        if (tile.dataset.code === code && tile.dataset.nib) {
+          setTileOwned(tile, newOwned);
+        }
+      });
+      syncGroupedTile(code);
     }
 
     function applyOwnedSet(set) {
@@ -1506,18 +1628,22 @@
       // any listed code. For Posca this means "all nibs of that color" —
       // the right semantics for reset (empty set) and code-only imports.
       allTiles.forEach(function(tile) { setTileOwned(tile, set.has(tile.dataset.code)); });
+      if (currentBrand === 'posca') syncAllGroupedTiles();
       updateStats();
     }
 
     function applyPoscaOwned(map) {
-      // Per-(code, nib) apply: every tile (spectrum mini + family card)
-      // reflects map[code].includes(nib).
+      // Per-(code, nib) apply: every nib-bearing tile (spectrum mini +
+      // family card) reflects map[code].includes(nib). Grouped tiles are
+      // refreshed afterward via syncAllGroupedTiles.
       allTiles.forEach(function(t) {
+        if (!t.dataset.nib) return;
         const code = t.dataset.code;
         const nib = t.dataset.nib;
-        const owned = !!(nib && map[code] && map[code].indexOf(nib) !== -1);
+        const owned = !!(map[code] && map[code].indexOf(nib) !== -1);
         setTileOwned(t, owned);
       });
+      syncAllGroupedTiles();
       updateStats();
     }
 
@@ -1556,7 +1682,10 @@
       if (activeSlide.id === 'spectrum') {
         slideTotal = total;
         count = 0;
-        activeSlide.querySelectorAll('.mini').forEach(function(t) {
+        // Only count canonical per-marker tiles. In Posca's group mode the
+        // grouped clones share dataset.code with markers and would double
+        // the count if included.
+        activeSlide.querySelectorAll('.mini:not(.grouped)').forEach(function(t) {
           if (t.classList.contains('owned')) count++;
         });
       } else {
@@ -1628,24 +1757,36 @@
       toastTimer = setTimeout(function() { toast.classList.remove('visible'); }, 1400);
     }
 
-    // Tile click — Posca toggles per (color, nib); Copic toggles per color.
+    // Tile click — Posca per (color, nib); grouped Posca tile bulk-toggles
+    // every nib of that color; Copic toggles per color.
     allTiles.forEach(function(tile) {
       tile.addEventListener('click', function() {
         const code = tile.dataset.code;
         const name = tile.dataset.name || '';
         const nib = tile.dataset.nib;
-        const newOwned = !tile.classList.contains('owned');
+        const isGrouped = tile.classList.contains('grouped');
 
-        if (currentBrand === 'posca' && nib) {
+        let newOwned, label;
+        if (currentBrand === 'posca' && isGrouped) {
+          // Grouped click: any-owned → clear all; none-owned → mark all.
+          // Partial collapses to fully-cleared with one tap.
+          newOwned = !tile.classList.contains('owned');
+          bulkToggleColor(code, newOwned);
+          const nibCount = parseInt(tile.dataset.nibCount, 10) || 0;
+          const base = name ? code + ' · ' + name : code;
+          label = base + ' (' + nibCount + ' size' + (nibCount === 1 ? '' : 's') + ')';
+        } else if (currentBrand === 'posca' && nib) {
+          newOwned = !tile.classList.contains('owned');
           syncPoscaPair(code, nib, newOwned);
+          const base = name ? code + ' · ' + name : code;
+          label = base + ' (PC-' + nib + ')';
         } else {
+          newOwned = !tile.classList.contains('owned');
           syncCode(code, newOwned);
+          label = name ? code + ' · ' + name : code;
         }
         updateStats();
         saveOwned();
-
-        const base = name ? code + ' · ' + name : code;
-        const label = nib ? base + ' (PC-' + nib + ')' : base;
         showToast((newOwned ? 'Added ' : 'Removed ') + label, !newOwned);
       });
       tile.addEventListener('keydown', function(e) {
@@ -1780,6 +1921,36 @@
       codeToggle.setAttribute('aria-pressed', next ? 'true' : 'false');
       document.body.classList.toggle('hide-codes', next);
       try { localStorage.setItem(CODES_HIDDEN_KEY, next ? 'true' : 'false'); } catch(e) {}
+    });
+
+    // Nib labels toggle (Posca only — Copic minis have no nib element).
+    const nibToggle = document.getElementById('nibToggle');
+    try {
+      if (localStorage.getItem(NIBS_HIDDEN_KEY) === 'true') {
+        document.body.classList.add('hide-nibs');
+        nibToggle.setAttribute('aria-pressed', 'true');
+      }
+    } catch(e) {}
+    nibToggle.addEventListener('click', function() {
+      const next = nibToggle.getAttribute('aria-pressed') !== 'true';
+      nibToggle.setAttribute('aria-pressed', next ? 'true' : 'false');
+      document.body.classList.toggle('hide-nibs', next);
+      try { localStorage.setItem(NIBS_HIDDEN_KEY, next ? 'true' : 'false'); } catch(e) {}
+    });
+
+    // Group toggle (Posca only — collapses 310 marker tiles to 68 colors).
+    const groupToggle = document.getElementById('groupToggle');
+    try {
+      if (localStorage.getItem(GROUP_KEY) === 'true') {
+        document.body.classList.add('group-mode');
+        groupToggle.setAttribute('aria-pressed', 'true');
+      }
+    } catch(e) {}
+    groupToggle.addEventListener('click', function() {
+      const next = groupToggle.getAttribute('aria-pressed') !== 'true';
+      groupToggle.setAttribute('aria-pressed', next ? 'true' : 'false');
+      document.body.classList.toggle('group-mode', next);
+      try { localStorage.setItem(GROUP_KEY, next ? 'true' : 'false'); } catch(e) {}
     });
 
     // Search (with expand/collapse)
@@ -1975,6 +2146,10 @@
         gotoSlide(currentSlide + 1);
       } else if (e.key === 'c' || e.key === 'C') {
         codeToggle.click();
+      } else if ((e.key === 'n' || e.key === 'N') && currentBrand === 'posca') {
+        nibToggle.click();
+      } else if ((e.key === 'g' || e.key === 'G') && currentBrand === 'posca') {
+        groupToggle.click();
       } else if (e.key === 't' || e.key === 'T') {
         themeBtn.click();
       }
