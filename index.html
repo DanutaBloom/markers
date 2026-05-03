@@ -608,13 +608,14 @@
      never renders grouped clones. */
   body:not([data-brand="posca"]) .posca-only { display: none !important; }
 
-  /* ═══════ Posca size-filter (per-nib visibility) ═══════ */
-  /* Lives inside the spectrum slide so it only shows on the All view.
-     Pressed pill = nib visible; unpressed = nib hidden. Default all on
-     so a fresh user sees the full inventory. The `posca-only` class also
-     hides the row entirely on Copic. Group-mode disables the filter
-     because grouped tiles are color-only and per-nib makes no sense. */
-  .size-filter {
+  /* ═══════ Posca filter rows (size + category) ═══════ */
+  /* Each filter row lives inside the spectrum slide. Pressed pill = item
+     visible; unpressed = hidden. Default all on so a fresh user sees the
+     full inventory. The `posca-only` class hides the row entirely on
+     Copic. Size filter is disabled in group mode (grouped tiles are
+     color-only and per-nib makes no sense); category filter still applies
+     because grouped tiles carry data-family. */
+  .filter-row {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
@@ -623,7 +624,10 @@
     margin-bottom: 6px;
     border-bottom: 1px solid var(--border);
   }
-  .size-filter-label {
+  .filter-row + .filter-row {
+    margin-top: -2px;
+  }
+  .filter-row-label {
     font-size: 10px;
     font-weight: 600;
     color: var(--text-muted);
@@ -664,6 +668,23 @@
     outline-offset: 2px;
   }
   body[data-brand="posca"].group-mode #sizeFilter { display: none; }
+
+  /* Color-category filter — hides marker tiles AND grouped clones whose
+     data-family matches an unpressed category. Both views respect this. */
+  body.hide-cat-Standard #spectrumStrip .mini[data-family="Standard"],
+  body.hide-cat-Pastel   #spectrumStrip .mini[data-family="Pastel"],
+  body.hide-cat-Fluo     #spectrumStrip .mini[data-family="Fluo"],
+  body.hide-cat-Metallic #spectrumStrip .mini[data-family="Metallic"],
+  body.hide-cat-Glitter  #spectrumStrip .mini[data-family="Glitter"] { display: none; }
+
+  /* Posca single-view: the carousel chrome (arrows, family-chips nav,
+     slide title) is redundant with the filter pills since size + category
+     toggles do all the slicing. Hide them; the spectrum slide becomes the
+     only view. Copic keeps the full carousel — it has 17 color families
+     and benefits from per-family slides. */
+  body[data-brand="posca"] .carousel-section .arrow-btn,
+  body[data-brand="posca"] #familyNav,
+  body[data-brand="posca"] .carousel-title { display: none; }
 
   /* Hide marker tiles for nibs the user has unpressed. Scoped to the
      spectrum strip so family slides stay intact (each family slide IS
@@ -1205,6 +1226,8 @@
     { code: '17K', name: 'PC-17K · Extra broad 15 mm',    chipLabel: '17K' },
     { code: '3ML', name: 'PC-3ML · Glitter fine 0.9-1.3', chipLabel: '3ML' }
   ];
+  // Color categories — the second filter axis on Posca's single view.
+  const POSCA_CATEGORIES = ['Standard', 'Pastel', 'Fluo', 'Metallic', 'Glitter'];
 
   const POSCA_COLORS = [
     ['Standard','255','White','#FFFFFF'],['Standard','24','Black','#000000'],
@@ -1403,20 +1426,24 @@
     }
     spectrumStrip.appendChild(stripFrag);
 
-    // Posca-only size-filter row above the spectrum strip. Pressed=true
-    // means "nib visible". Default all pressed; user clicks to hide a
-    // nib from the All view (purely visual, doesn't affect counts).
+    // Posca-only filter rows above the spectrum strip. Each pill: pressed
+    // = item visible, unpressed = hidden. Defaults all pressed so a fresh
+    // user lands on the full inventory. Filters are purely visual — they
+    // don't affect the X / N count.
     if (currentBrand === 'posca') {
-      const filterRow = document.createElement('div');
-      filterRow.className = 'size-filter posca-only';
-      filterRow.id = 'sizeFilter';
-      filterRow.setAttribute('role', 'group');
-      filterRow.setAttribute('aria-label', 'Filter sizes');
+      const spectrumSlide = document.getElementById('spectrum');
 
-      const labelEl = document.createElement('span');
-      labelEl.className = 'size-filter-label';
-      labelEl.textContent = 'Sizes';
-      filterRow.appendChild(labelEl);
+      // Sizes filter row (1M, 3M, 5M, 7M, 8K, 17K, 3ML).
+      const sizeRow = document.createElement('div');
+      sizeRow.className = 'filter-row posca-only';
+      sizeRow.id = 'sizeFilter';
+      sizeRow.setAttribute('role', 'group');
+      sizeRow.setAttribute('aria-label', 'Filter sizes');
+
+      const sizeLabel = document.createElement('span');
+      sizeLabel.className = 'filter-row-label';
+      sizeLabel.textContent = 'Sizes';
+      sizeRow.appendChild(sizeLabel);
 
       POSCA_FAMILIES.forEach(function(f) {
         const pill = document.createElement('button');
@@ -1425,71 +1452,87 @@
         pill.setAttribute('aria-pressed', 'true');
         pill.setAttribute('aria-label', 'Toggle ' + f.name);
         pill.textContent = f.code;
-        filterRow.appendChild(pill);
+        sizeRow.appendChild(pill);
       });
+      spectrumSlide.insertBefore(sizeRow, spectrumStrip);
 
-      const spectrumSlide = document.getElementById('spectrum');
-      spectrumSlide.insertBefore(filterRow, spectrumStrip);
+      // Categories filter row (Standard / Pastel / Fluo / Metallic / Glitter).
+      const catRow = document.createElement('div');
+      catRow.className = 'filter-row posca-only';
+      catRow.id = 'catFilter';
+      catRow.setAttribute('role', 'group');
+      catRow.setAttribute('aria-label', 'Filter color categories');
+
+      const catLabel = document.createElement('span');
+      catLabel.className = 'filter-row-label';
+      catLabel.textContent = 'Colors';
+      catRow.appendChild(catLabel);
+
+      POSCA_CATEGORIES.forEach(function(cat) {
+        const pill = document.createElement('button');
+        pill.className = 'size-pill';
+        pill.dataset.cat = cat;
+        pill.setAttribute('aria-pressed', 'true');
+        pill.setAttribute('aria-label', 'Toggle ' + cat);
+        pill.textContent = cat;
+        catRow.appendChild(pill);
+      });
+      spectrumSlide.insertBefore(catRow, spectrumStrip);
     }
 
-    const trackFrag = document.createDocumentFragment();
-    FAMILIES.forEach(({ code: famCode, name: famName }) => {
-      // Copic: family axis = color category, source row's family equals famCode.
-      // Posca: family axis = nib size, include every color whose available nib
-      // list contains famCode (computed via nibsForColor).
-      const famColors = currentBrand === 'posca'
-        ? COLORS.filter(c => nibsForColor(c[0], c[1]).includes(famCode))
-        : COLORS.filter(c => c[0] === famCode);
-      if (famColors.length === 0) return;
+    // Family slides only for Copic. Posca uses a single view + filter pills
+    // instead — every (color, nib) lives in the spectrum strip and the
+    // size + category filters do the slicing the slides used to do.
+    if (currentBrand !== 'posca') {
+      const trackFrag = document.createDocumentFragment();
+      FAMILIES.forEach(({ code: famCode, name: famName }) => {
+        const famColors = COLORS.filter(c => c[0] === famCode);
+        if (famColors.length === 0) return;
 
-      const slide = document.createElement('div');
-      slide.className = 'carousel-slide family-slide';
-      slide.id = 'family-' + famCode;
-      slide.dataset.family = famCode;
-      slide.dataset.familyName = famName;
-      slide.dataset.familyTotal = famColors.length;
+        const slide = document.createElement('div');
+        slide.className = 'carousel-slide family-slide';
+        slide.id = 'family-' + famCode;
+        slide.dataset.family = famCode;
+        slide.dataset.familyName = famName;
+        slide.dataset.familyTotal = famColors.length;
 
-      const grid = document.createElement('div');
-      grid.className = 'grid';
-      famColors.forEach(([colorFamily, code, name, hex]) => {
-        // Posca: tag every nib-slide swatch with its nib so click + ownership
-        // can resolve to a single (code, nib) pair instead of bulk-toggling
-        // every size. Copic ignores dataset.nib.
-        const sw = makeCardSwatch(colorFamily, code, name, hex);
-        if (currentBrand === 'posca') sw.dataset.nib = famCode;
-        grid.appendChild(sw);
+        const grid = document.createElement('div');
+        grid.className = 'grid';
+        famColors.forEach(([colorFamily, code, name, hex]) => {
+          grid.appendChild(makeCardSwatch(colorFamily, code, name, hex));
+        });
+        slide.appendChild(grid);
+        trackFrag.appendChild(slide);
       });
-      slide.appendChild(grid);
-      trackFrag.appendChild(slide);
-    });
-    carouselTrack.appendChild(trackFrag);
+      carouselTrack.appendChild(trackFrag);
 
-    // Family nav chips
-    const familyNav = document.getElementById('familyNav');
-    const navFrag = document.createDocumentFragment();
-    const allBtn = document.createElement('button');
-    allBtn.className = 'chip';
-    allBtn.dataset.jump = 'spectrum';
-    allBtn.textContent = 'All';
-    navFrag.appendChild(allBtn);
-    const firstDivider = document.createElement('span');
-    firstDivider.className = 'chip-divider';
-    firstDivider.setAttribute('aria-hidden', 'true');
-    navFrag.appendChild(firstDivider);
-    FAMILIES.forEach(function({ code, chipLabel }) {
-      const btn = document.createElement('button');
-      btn.className = 'chip';
-      btn.dataset.jump = 'family-' + code;
-      btn.textContent = chipLabel || code;
-      navFrag.appendChild(btn);
-      if (DIVIDERS.has(code)) {
-        const d = document.createElement('span');
-        d.className = 'chip-divider';
-        d.setAttribute('aria-hidden', 'true');
-        navFrag.appendChild(d);
-      }
-    });
-    familyNav.appendChild(navFrag);
+      // Family nav chips (Copic only — Posca's filter pills replace these).
+      const familyNav = document.getElementById('familyNav');
+      const navFrag = document.createDocumentFragment();
+      const allBtn = document.createElement('button');
+      allBtn.className = 'chip';
+      allBtn.dataset.jump = 'spectrum';
+      allBtn.textContent = 'All';
+      navFrag.appendChild(allBtn);
+      const firstDivider = document.createElement('span');
+      firstDivider.className = 'chip-divider';
+      firstDivider.setAttribute('aria-hidden', 'true');
+      navFrag.appendChild(firstDivider);
+      FAMILIES.forEach(function({ code, chipLabel }) {
+        const btn = document.createElement('button');
+        btn.className = 'chip';
+        btn.dataset.jump = 'family-' + code;
+        btn.textContent = chipLabel || code;
+        navFrag.appendChild(btn);
+        if (DIVIDERS.has(code)) {
+          const d = document.createElement('span');
+          d.className = 'chip-divider';
+          d.setAttribute('aria-hidden', 'true');
+          navFrag.appendChild(d);
+        }
+      });
+      familyNav.appendChild(navFrag);
+    }
   }
 
   buildUI();
@@ -1516,6 +1559,7 @@
     const NIBS_HIDDEN_KEY = 'marker-nibs-hidden';
     const GROUP_KEY = 'marker-grouped';
     const HIDDEN_NIBS_KEY = 'marker-hidden-nibs';
+    const HIDDEN_CATS_KEY = 'marker-hidden-cats';
 
     // Resilient storage
     const storage = (function() {
@@ -1608,7 +1652,12 @@
 
     // Tile state
     const allTiles = Array.from(document.querySelectorAll('.swatch, .mini'));
-    const swatches = Array.from(document.querySelectorAll('.swatch'));
+    // `swatches` is the canonical per-marker tile collection — used by
+    // saveOwned, syncGroupedTile, parseImport. For Copic that's the family
+    // cards; for Posca (no family slides) that's the spectrum marker tiles.
+    const swatches = currentBrand === 'posca'
+      ? Array.from(document.querySelectorAll('#spectrumStrip .mini:not(.grouped)'))
+      : Array.from(document.querySelectorAll('.swatch'));
 
     function currentOwnedSet() {
       // Distinct owned color codes. Copic: matches storage. Posca: "colors
@@ -1734,13 +1783,28 @@
       const tiles = activeSlide.querySelectorAll('.swatch, .mini');
       const isSearching = document.body.classList.contains('searching');
       const filter = document.body.getAttribute('data-filter');
+      const groupMode = document.body.classList.contains('group-mode');
       let visibleCount = 0;
       tiles.forEach(function(t) {
         const isOwned = t.classList.contains('owned');
+        const isGrouped = t.classList.contains('grouped');
         let visible = true;
         if (filter === 'owned' && !isOwned) visible = false;
         if (filter === 'missing' && isOwned) visible = false;
         if (isSearching && !t.classList.contains('match')) visible = false;
+        // Posca size + category filters hide tiles via CSS classes — mirror
+        // those checks here so the empty-state kicks in when the user
+        // unpresses every relevant pill.
+        if (currentBrand === 'posca') {
+          if (groupMode && !isGrouped) visible = false;
+          if (!groupMode && isGrouped) visible = false;
+          if (t.dataset.nib && document.body.classList.contains('hide-nib-' + t.dataset.nib) && !groupMode) {
+            visible = false;
+          }
+          if (t.dataset.family && document.body.classList.contains('hide-cat-' + t.dataset.family)) {
+            visible = false;
+          }
+        }
         if (visible) visibleCount++;
       });
       const isEmpty = visibleCount === 0;
@@ -2035,7 +2099,7 @@
     // Size filter pills (Posca only) — each pill toggles visibility of one
     // nib in the spectrum's per-marker view. Pressed=true means visible.
     const ALL_NIBS = ['1M','3M','5M','7M','8K','17K','3ML'];
-    const sizePills = Array.from(document.querySelectorAll('.size-pill'));
+    const sizePills = Array.from(document.querySelectorAll('.size-pill[data-nib]'));
 
     function loadHiddenNibs() {
       try {
@@ -2064,6 +2128,43 @@
         else hidden.add(nib);
         try { localStorage.setItem(HIDDEN_NIBS_KEY, JSON.stringify(Array.from(hidden))); } catch(e) {}
         applyHiddenNibs(hidden);
+        checkEmptyState();
+      });
+    });
+
+    // Category filter pills (Posca only) — same pattern as size pills,
+    // but toggles by color category (Standard/Pastel/Fluo/Metallic/Glitter).
+    const ALL_CATS = ['Standard', 'Pastel', 'Fluo', 'Metallic', 'Glitter'];
+    const catPills = Array.from(document.querySelectorAll('.size-pill[data-cat]'));
+
+    function loadHiddenCats() {
+      try {
+        const raw = localStorage.getItem(HIDDEN_CATS_KEY);
+        const arr = raw ? JSON.parse(raw) : [];
+        return new Set(Array.isArray(arr) ? arr : []);
+      } catch(e) { return new Set(); }
+    }
+
+    function applyHiddenCats(set) {
+      ALL_CATS.forEach(function(cat) {
+        document.body.classList.toggle('hide-cat-' + cat, set.has(cat));
+      });
+      catPills.forEach(function(p) {
+        p.setAttribute('aria-pressed', set.has(p.dataset.cat) ? 'false' : 'true');
+      });
+    }
+
+    applyHiddenCats(loadHiddenCats());
+
+    catPills.forEach(function(pill) {
+      pill.addEventListener('click', function() {
+        const cat = pill.dataset.cat;
+        const hidden = loadHiddenCats();
+        if (hidden.has(cat)) hidden.delete(cat);
+        else hidden.add(cat);
+        try { localStorage.setItem(HIDDEN_CATS_KEY, JSON.stringify(Array.from(hidden))); } catch(e) {}
+        applyHiddenCats(hidden);
+        checkEmptyState();
       });
     });
 
