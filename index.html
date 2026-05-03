@@ -322,19 +322,6 @@
     line-height: 1;
     color: var(--text);
   }
-  .carousel-progress {
-    height: 3px;
-    background: var(--bg-subtle);
-    border-radius: var(--r-full);
-    overflow: hidden;
-    max-width: 280px;
-  }
-  .carousel-progress-fill {
-    height: 100%;
-    background: var(--owned);
-    border-radius: var(--r-full);
-    transition: width 0.5s var(--ease-spring);
-  }
   .carousel-meta {
     flex-shrink: 0;
     font-family: var(--font-mono);
@@ -620,6 +607,74 @@
      hides them on Copic so the toolbar stays clean and the spectrum
      never renders grouped clones. */
   body:not([data-brand="posca"]) .posca-only { display: none !important; }
+
+  /* ═══════ Posca size-filter (per-nib visibility) ═══════ */
+  /* Lives inside the spectrum slide so it only shows on the All view.
+     Pressed pill = nib visible; unpressed = nib hidden. Default all on
+     so a fresh user sees the full inventory. The `posca-only` class also
+     hides the row entirely on Copic. Group-mode disables the filter
+     because grouped tiles are color-only and per-nib makes no sense. */
+  .size-filter {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 4px 4px 10px;
+    margin-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .size-filter-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-right: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .size-pill {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--r-full);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    letter-spacing: -0.01em;
+    transition: background 0.15s var(--ease), color 0.15s var(--ease), border-color 0.15s var(--ease), filter 0.15s var(--ease);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    min-height: 28px;
+  }
+  .size-pill:hover { color: var(--text); }
+  .size-pill[aria-pressed="true"] {
+    background: var(--ink);
+    color: var(--surface);
+    border-color: var(--ink);
+  }
+  :root[data-theme="dark"] .size-pill[aria-pressed="true"] {
+    background: var(--text);
+    color: var(--bg);
+    border-color: var(--text);
+  }
+  .size-pill[aria-pressed="true"]:hover { filter: brightness(1.05); }
+  .size-pill:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+  }
+  body[data-brand="posca"].group-mode #sizeFilter { display: none; }
+
+  /* Hide marker tiles for nibs the user has unpressed. Scoped to the
+     spectrum strip so family slides stay intact (each family slide IS
+     a single nib — filtering it would empty that view). */
+  body.hide-nib-1M:not(.group-mode)  #spectrumStrip .mini:not(.grouped)[data-nib="1M"],
+  body.hide-nib-3M:not(.group-mode)  #spectrumStrip .mini:not(.grouped)[data-nib="3M"],
+  body.hide-nib-5M:not(.group-mode)  #spectrumStrip .mini:not(.grouped)[data-nib="5M"],
+  body.hide-nib-7M:not(.group-mode)  #spectrumStrip .mini:not(.grouped)[data-nib="7M"],
+  body.hide-nib-8K:not(.group-mode)  #spectrumStrip .mini:not(.grouped)[data-nib="8K"],
+  body.hide-nib-17K:not(.group-mode) #spectrumStrip .mini:not(.grouped)[data-nib="17K"],
+  body.hide-nib-3ML:not(.group-mode) #spectrumStrip .mini:not(.grouped)[data-nib="3ML"] { display: none; }
 
   /* ═══════ Posca grouped tiles (Group toggle) ═══════ */
   /* When Group is OFF (default): show 310 per-marker tiles, hide the 68
@@ -949,9 +1004,6 @@
     </button>
     <div class="carousel-title">
       <h2 id="carouselTitle">All</h2>
-      <div class="carousel-progress" aria-hidden="true">
-        <div class="carousel-progress-fill" id="carouselProgressFill" style="width: 0%"></div>
-      </div>
     </div>
     <div class="filter-group" role="group" aria-label="Filter">
       <button class="filter-pill active" data-filter="all">All</button>
@@ -1351,6 +1403,35 @@
     }
     spectrumStrip.appendChild(stripFrag);
 
+    // Posca-only size-filter row above the spectrum strip. Pressed=true
+    // means "nib visible". Default all pressed; user clicks to hide a
+    // nib from the All view (purely visual, doesn't affect counts).
+    if (currentBrand === 'posca') {
+      const filterRow = document.createElement('div');
+      filterRow.className = 'size-filter posca-only';
+      filterRow.id = 'sizeFilter';
+      filterRow.setAttribute('role', 'group');
+      filterRow.setAttribute('aria-label', 'Filter sizes');
+
+      const labelEl = document.createElement('span');
+      labelEl.className = 'size-filter-label';
+      labelEl.textContent = 'Sizes';
+      filterRow.appendChild(labelEl);
+
+      POSCA_FAMILIES.forEach(function(f) {
+        const pill = document.createElement('button');
+        pill.className = 'size-pill';
+        pill.dataset.nib = f.code;
+        pill.setAttribute('aria-pressed', 'true');
+        pill.setAttribute('aria-label', 'Toggle ' + f.name);
+        pill.textContent = f.code;
+        filterRow.appendChild(pill);
+      });
+
+      const spectrumSlide = document.getElementById('spectrum');
+      spectrumSlide.insertBefore(filterRow, spectrumStrip);
+    }
+
     const trackFrag = document.createDocumentFragment();
     FAMILIES.forEach(({ code: famCode, name: famName }) => {
       // Copic: family axis = color category, source row's family equals famCode.
@@ -1420,7 +1501,6 @@
     const themeLabel = document.getElementById('themeLabel');
     const resetBtn = document.getElementById('resetBtn');
     const exportBtn = document.getElementById('exportBtn');
-    const carouselProgressFill = document.getElementById('carouselProgressFill');
     // Posca total = sum of markers (color × nib) across all colors. Copic
     // total = unique colors (each color is one marker). Drives the "X / N"
     // counter in the toolbar.
@@ -1435,6 +1515,7 @@
     const CODES_HIDDEN_KEY = 'marker-codes-hidden';
     const NIBS_HIDDEN_KEY = 'marker-nibs-hidden';
     const GROUP_KEY = 'marker-grouped';
+    const HIDDEN_NIBS_KEY = 'marker-hidden-nibs';
 
     // Resilient storage
     const storage = (function() {
@@ -1700,8 +1781,6 @@
       meta.textContent = '';
       meta.appendChild(strong);
       meta.appendChild(document.createTextNode(' / ' + slideTotal));
-      const pct = slideTotal ? (count / slideTotal * 100) : 0;
-      carouselProgressFill.style.width = pct + '%';
       checkEmptyState();
     }
 
@@ -1951,6 +2030,41 @@
       groupToggle.setAttribute('aria-pressed', next ? 'true' : 'false');
       document.body.classList.toggle('group-mode', next);
       try { localStorage.setItem(GROUP_KEY, next ? 'true' : 'false'); } catch(e) {}
+    });
+
+    // Size filter pills (Posca only) — each pill toggles visibility of one
+    // nib in the spectrum's per-marker view. Pressed=true means visible.
+    const ALL_NIBS = ['1M','3M','5M','7M','8K','17K','3ML'];
+    const sizePills = Array.from(document.querySelectorAll('.size-pill'));
+
+    function loadHiddenNibs() {
+      try {
+        const raw = localStorage.getItem(HIDDEN_NIBS_KEY);
+        const arr = raw ? JSON.parse(raw) : [];
+        return new Set(Array.isArray(arr) ? arr : []);
+      } catch(e) { return new Set(); }
+    }
+
+    function applyHiddenNibs(set) {
+      ALL_NIBS.forEach(function(nib) {
+        document.body.classList.toggle('hide-nib-' + nib, set.has(nib));
+      });
+      sizePills.forEach(function(p) {
+        p.setAttribute('aria-pressed', set.has(p.dataset.nib) ? 'false' : 'true');
+      });
+    }
+
+    applyHiddenNibs(loadHiddenNibs());
+
+    sizePills.forEach(function(pill) {
+      pill.addEventListener('click', function() {
+        const nib = pill.dataset.nib;
+        const hidden = loadHiddenNibs();
+        if (hidden.has(nib)) hidden.delete(nib);
+        else hidden.add(nib);
+        try { localStorage.setItem(HIDDEN_NIBS_KEY, JSON.stringify(Array.from(hidden))); } catch(e) {}
+        applyHiddenNibs(hidden);
+      });
     });
 
     // Search (with expand/collapse)
