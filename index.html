@@ -131,18 +131,24 @@
   }
 
   /* Ghost icon-button */
+  /* ═══════ Unified pill primitive ═══════ */
+  /* Single visual language for all toggle/filter buttons: pill-shaped,
+     32px tall, transparent rest, ink-filled when pressed/active. The
+     toolbar uses the icon variant (square 32x32); filter rows use the
+     text variant. Brand-tab segmented control stays distinct because
+     it's primary navigation, not a filter. */
   .ghost-btn {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     background: transparent;
     color: var(--text-muted);
     border: 1px solid transparent;
-    border-radius: var(--r-2);
+    border-radius: var(--r-full);
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+    transition: background 0.15s var(--ease), color 0.15s var(--ease), border-color 0.15s var(--ease);
     flex-shrink: 0;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
@@ -152,15 +158,21 @@
     background: var(--bg-subtle);
     color: var(--text);
   }
-  .ghost-btn:active { transform: scale(0.94); }
+  .ghost-btn:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+  }
   .ghost-btn[aria-pressed="true"] {
     background: var(--ink);
+    color: var(--surface);
+    border-color: var(--ink);
+  }
+  :root[data-theme="dark"] .ghost-btn[aria-pressed="true"] {
+    background: var(--text);
     color: var(--bg);
+    border-color: var(--text);
   }
-  .ghost-btn[aria-pressed="true"]:hover {
-    background: var(--ink);
-    opacity: 0.88;
-  }
+  .ghost-btn[aria-pressed="true"]:hover { filter: brightness(1.05); }
   .visually-hidden {
     position: absolute;
     width: 1px; height: 1px;
@@ -366,21 +378,26 @@
     display: inline-flex;
     align-items: center;
     padding: 0 12px;
-    height: 24px;
+    height: 32px;
     background: transparent;
     color: var(--text-muted);
-    border: none;
+    border: 1px solid transparent;
     border-radius: var(--r-full);
     font-family: var(--font-sans);
-    font-size: var(--fs-xs);
+    font-size: var(--fs-sm);
     font-weight: 500;
+    letter-spacing: -0.01em;
     cursor: pointer;
-    transition: background 0.2s var(--ease), color 0.2s var(--ease);
+    transition: background 0.15s var(--ease), color 0.15s var(--ease), border-color 0.15s var(--ease);
     white-space: nowrap;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
   }
   .filter-pill:hover { color: var(--text); }
+  .filter-pill:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+  }
   /* Brand bar — primary navigation, lives in its own band above the toolbar.
      Apple-style segmented control: pill container, active segment fills with
      elevated bg and gains weight; inactive is muted. No scale transforms. */
@@ -434,14 +451,17 @@
     outline-offset: 2px;
   }
   .filter-pill.active {
-    background: var(--bg-elevated);
-    color: var(--text);
-    box-shadow: 0 1px 2px rgba(20, 20, 19, 0.08);
+    background: var(--ink);
+    color: var(--surface);
+    border-color: var(--ink);
     font-weight: 600;
   }
   :root[data-theme="dark"] .filter-pill.active {
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+    background: var(--text);
+    color: var(--bg);
+    border-color: var(--text);
   }
+  .filter-pill.active:hover { filter: brightness(1.05); }
 
   /* Family navigation chips */
   .family-nav {
@@ -636,20 +656,24 @@
     letter-spacing: 0.08em;
   }
   .size-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     font-family: var(--font-mono);
     font-size: 11px;
     font-weight: 600;
-    padding: 4px 10px;
+    padding: 0 12px;
+    height: 32px;
     border: 1px solid var(--border);
     border-radius: var(--r-full);
     background: transparent;
     color: var(--text-muted);
     cursor: pointer;
     letter-spacing: -0.01em;
+    white-space: nowrap;
     transition: background 0.15s var(--ease), color 0.15s var(--ease), border-color 0.15s var(--ease), filter 0.15s var(--ease);
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
-    min-height: 28px;
   }
   .size-pill:hover { color: var(--text); }
   .size-pill[aria-pressed="true"] {
@@ -677,14 +701,17 @@
   body.hide-cat-Metallic #spectrumStrip .mini[data-family="Metallic"],
   body.hide-cat-Glitter  #spectrumStrip .mini[data-family="Glitter"] { display: none; }
 
-  /* Posca single-view: the carousel chrome (arrows, family-chips nav,
-     slide title) is redundant with the filter pills since size + category
-     toggles do all the slicing. Hide them; the spectrum slide becomes the
-     only view. Copic keeps the full carousel — it has 17 color families
-     and benefits from per-family slides. */
-  body[data-brand="posca"] .carousel-section .arrow-btn,
-  body[data-brand="posca"] #familyNav,
-  body[data-brand="posca"] .carousel-title { display: none; }
+  /* Posca single-view: the carousel header (arrows, title, owned/missing
+     pills, meta count) and family-chips nav are all moved or redundant
+     with the filter rows below. Hide them entirely so the spectrum slide
+     and filter rows are the whole UI. Copic keeps the full carousel — it
+     has 17 color families that benefit from per-family slides. */
+  body[data-brand="posca"] .carousel-header,
+  body[data-brand="posca"] #familyNav { display: none; }
+
+  /* The carousel-meta moves into the Status filter row for Posca; right-
+     align it within the row. */
+  .filter-row .carousel-meta { margin-left: auto; }
 
   /* Hide marker tiles for nibs the user has unpressed. Scoped to the
      spectrum strip so family slides stay intact (each family slide IS
@@ -830,7 +857,12 @@
     display: block;
     margin-bottom: 4px;
   }
-  body.empty-active .carousel-track { display: none; }
+  /* When everything is filtered out: hide the tile grids but keep the
+     filter rows visible so the user can still adjust pills to bring tiles
+     back. Previously the entire .carousel-track was hidden, which trapped
+     the user with no way out. */
+  body.empty-active #spectrumStrip,
+  body.empty-active .family-slide .grid { display: none; }
   body.empty-active .empty-state { display: block; }
 
   /* ═══════ Toast ═══════ */
@@ -1432,6 +1464,28 @@
     // don't affect the X / N count.
     if (currentBrand === 'posca') {
       const spectrumSlide = document.getElementById('spectrum');
+
+      // Status filter row — moves the existing All/Owned/Missing pills
+      // out of the carousel header so all filters live together. The
+      // meta count comes along too, right-aligned.
+      const statusRow = document.createElement('div');
+      statusRow.className = 'filter-row posca-only';
+      statusRow.id = 'statusFilter';
+      statusRow.setAttribute('role', 'group');
+      statusRow.setAttribute('aria-label', 'Filter by ownership');
+
+      const statusLabel = document.createElement('span');
+      statusLabel.className = 'filter-row-label';
+      statusLabel.textContent = 'Status';
+      statusRow.appendChild(statusLabel);
+
+      const filterGroup = document.querySelector('.filter-group');
+      Array.from(filterGroup.children).forEach(function(btn) {
+        statusRow.appendChild(btn);
+      });
+      const carouselMetaEl = document.getElementById('carouselMeta');
+      statusRow.appendChild(carouselMetaEl);
+      spectrumSlide.insertBefore(statusRow, spectrumStrip);
 
       // Sizes filter row (1M, 3M, 5M, 7M, 8K, 17K, 3ML).
       const sizeRow = document.createElement('div');
