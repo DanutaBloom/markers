@@ -686,6 +686,14 @@
   }
   /* Size pills get a min-width so 1M / 17K / 3ML have visual rhythm. */
   .filter-row-pills .size-pill[data-nib] { min-width: 44px; }
+  /* "All" pill — same primitive but visually demoted with a subtle right
+     margin so it reads as a row-level affordance rather than another
+     member pill. Pressed-state still inverts when every sibling is on. */
+  .filter-row-pills .size-pill.all-pill {
+    margin-right: 8px;
+    font-family: var(--font-sans);
+    letter-spacing: -0.01em;
+  }
   .size-pill {
     display: inline-flex;
     align-items: center;
@@ -1548,12 +1556,27 @@
     const metaEl = document.getElementById('carouselMeta');
     appendFilterRow('View', viewPills, metaEl);
 
+    // "All" pill — quick toggle that flips every sibling pill in the row
+    // between all-visible and all-hidden. Sits at the start of the row so
+    // it reads as the affordance for the whole group. Wired up later once
+    // the apply* functions exist.
+    function makeAllPill(group) {
+      const p = makePillButton('All', {
+        'data-all': group,
+        'aria-pressed': 'true',
+        'aria-label': 'Toggle all ' + group
+      });
+      p.classList.add('all-pill');
+      return p;
+    }
+
     // Sizes row (Posca only) — 1M, 3M, 5M, 7M, 8K, 17K, 3ML.
     if (currentBrand === 'posca') {
       const sizePillsEl = document.createElement('div');
       sizePillsEl.id = 'sizeFilter';
       sizePillsEl.setAttribute('role', 'group');
       sizePillsEl.setAttribute('aria-label', 'Filter sizes');
+      sizePillsEl.appendChild(makeAllPill('nibs'));
       POSCA_FAMILIES.forEach(function(f) {
         sizePillsEl.appendChild(makePillButton(f.code, {
           'data-nib': f.code,
@@ -1569,6 +1592,7 @@
     const catPillsEl = document.createElement('div');
     catPillsEl.id = 'catFilter';
     catPillsEl.setAttribute('role', 'group');
+    catPillsEl.appendChild(makeAllPill('cats'));
     if (currentBrand === 'posca') {
       catPillsEl.setAttribute('aria-label', 'Filter color categories');
       POSCA_CATEGORIES.forEach(function(cat) {
@@ -2182,6 +2206,12 @@
       try { localStorage.setItem(GROUP_KEY, next ? 'true' : 'false'); } catch(e) {}
     });
 
+    // The "All" pill at the start of each filter row toggles every sibling
+    // pill at once. Its aria-pressed mirrors "all members visible" so the
+    // user can read the row state at a glance.
+    const allNibsPill = document.querySelector('.size-pill[data-all="nibs"]');
+    const allCatsPill = document.querySelector('.size-pill[data-all="cats"]');
+
     // Size filter pills (Posca only) — each pill toggles visibility of one
     // nib in the spectrum's per-marker view. Pressed=true means visible.
     const ALL_NIBS = ['1M','3M','5M','7M','8K','17K','3ML'];
@@ -2202,6 +2232,13 @@
       sizePills.forEach(function(p) {
         p.setAttribute('aria-pressed', set.has(p.dataset.nib) ? 'false' : 'true');
       });
+      if (allNibsPill) {
+        allNibsPill.setAttribute('aria-pressed', set.size === 0 ? 'true' : 'false');
+      }
+    }
+
+    function saveHiddenNibs(set) {
+      try { localStorage.setItem(HIDDEN_NIBS_KEY, JSON.stringify(Array.from(set))); } catch(e) {}
     }
 
     applyHiddenNibs(loadHiddenNibs());
@@ -2212,11 +2249,21 @@
         const hidden = loadHiddenNibs();
         if (hidden.has(nib)) hidden.delete(nib);
         else hidden.add(nib);
-        try { localStorage.setItem(HIDDEN_NIBS_KEY, JSON.stringify(Array.from(hidden))); } catch(e) {}
+        saveHiddenNibs(hidden);
         applyHiddenNibs(hidden);
         checkEmptyState();
       });
     });
+
+    if (allNibsPill) {
+      allNibsPill.addEventListener('click', function() {
+        const hidden = loadHiddenNibs();
+        const next = hidden.size === 0 ? new Set(ALL_NIBS) : new Set();
+        saveHiddenNibs(next);
+        applyHiddenNibs(next);
+        checkEmptyState();
+      });
+    }
 
     // Family/category filter pills — same pattern as size pills, but
     // toggles by color category (Posca: Standard/Pastel/...) or by color
@@ -2242,6 +2289,13 @@
       catPills.forEach(function(p) {
         p.setAttribute('aria-pressed', set.has(p.dataset.cat) ? 'false' : 'true');
       });
+      if (allCatsPill) {
+        allCatsPill.setAttribute('aria-pressed', set.size === 0 ? 'true' : 'false');
+      }
+    }
+
+    function saveHiddenCats(set) {
+      try { localStorage.setItem(HIDDEN_CATS_KEY, JSON.stringify(Array.from(set))); } catch(e) {}
     }
 
     applyHiddenCats(loadHiddenCats());
@@ -2252,11 +2306,21 @@
         const hidden = loadHiddenCats();
         if (hidden.has(cat)) hidden.delete(cat);
         else hidden.add(cat);
-        try { localStorage.setItem(HIDDEN_CATS_KEY, JSON.stringify(Array.from(hidden))); } catch(e) {}
+        saveHiddenCats(hidden);
         applyHiddenCats(hidden);
         checkEmptyState();
       });
     });
+
+    if (allCatsPill) {
+      allCatsPill.addEventListener('click', function() {
+        const hidden = loadHiddenCats();
+        const next = hidden.size === 0 ? new Set(ALL_CATS) : new Set();
+        saveHiddenCats(next);
+        applyHiddenCats(next);
+        checkEmptyState();
+      });
+    }
 
     // Search (with expand/collapse)
     const searchWrap = document.getElementById('searchWrap');
