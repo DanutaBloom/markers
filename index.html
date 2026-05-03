@@ -581,6 +581,38 @@
   }
   body.hide-codes .mini-label { opacity: 0; }
 
+  /* ═══════ Posca per-marker mini (one tile per color × nib) ═══════ */
+  /* Each Posca tile represents one physical marker — color background +
+     nib label (PC-3M etc) + smaller color code. Nib stays visible when
+     codes are hidden so the 6 yellow tiles never collapse to identical
+     anonymous swatches. */
+  body[data-brand="posca"] .spectrum-strip {
+    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    gap: 4px;
+  }
+  body[data-brand="posca"] .mini {
+    flex-direction: column;
+    gap: 2px;
+    padding: 4px 2px;
+    font-family: var(--font-mono);
+  }
+  .mini-nib {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.28);
+  }
+  body[data-brand="posca"] .mini-label {
+    font-size: 9px;
+    font-weight: 500;
+    opacity: 0.82;
+  }
+  /* Explicit override — needs higher specificity than the Posca .mini-label
+     rule above, otherwise hide-codes loses on source-order tiebreak. */
+  body[data-brand="posca"].hide-codes .mini-label { opacity: 0; }
+
   /* ═══════ Family grid (swatches) ═══════ */
   .family-slide { padding: 4px; }
   .grid {
@@ -1164,7 +1196,7 @@
     return textColorFor(hex) === '#fff' ? 'light' : 'dark';
   }
 
-  function makeMiniSwatch(family, code, name, hex) {
+  function makeMiniSwatch(family, code, name, hex, nib) {
     const fg = textColorFor(hex);
     const mini = document.createElement('div');
     mini.className = 'mini missing';
@@ -1174,11 +1206,22 @@
     mini.dataset.family = family;
     mini.dataset.name = name;
     mini.dataset.fg = fgKindFor(hex);
-    mini.dataset.search = (code + ' ' + name).toLowerCase();
     mini.setAttribute('role', 'button');
     mini.setAttribute('tabindex', '0');
     mini.setAttribute('aria-pressed', 'false');
-    mini.title = code + ' · ' + name;
+
+    if (nib) {
+      mini.dataset.nib = nib;
+      mini.dataset.search = (code + ' ' + name + ' ' + nib + ' PC-' + nib).toLowerCase();
+      mini.title = code + ' · ' + name + ' · PC-' + nib;
+      const nibEl = document.createElement('span');
+      nibEl.className = 'mini-nib';
+      nibEl.textContent = nib;
+      mini.appendChild(nibEl);
+    } else {
+      mini.dataset.search = (code + ' ' + name).toLowerCase();
+      mini.title = code + ' · ' + name;
+    }
     const label = document.createElement('span');
     label.className = 'mini-label';
     label.textContent = code;
@@ -1219,12 +1262,20 @@
     const spectrumStrip = document.getElementById('spectrumStrip');
     const carouselTrack = document.getElementById('carouselTrack');
 
-    // Spectrum (All) view: dense mini-grid for both brands. Each Posca mini
-    // represents the *color* (any nib counts as owned). Per-nib detail lives
-    // in the family slides, where each slide is one pen-tip size.
+    // Spectrum (All) view: dense mini-grid. Copic gets one tile per color
+    // (each marker is a unique color). Posca gets one tile per (color, nib)
+    // pair — six yellows for Y2 sit next to each other, each tickable in
+    // isolation. This makes the All view a true marker inventory instead
+    // of a color-rollup.
     const stripFrag = document.createDocumentFragment();
     COLORS.forEach(([family, code, name, hex]) => {
-      stripFrag.appendChild(makeMiniSwatch(family, code, name, hex));
+      if (currentBrand === 'posca') {
+        nibsForColor(family, code).forEach(function(nib) {
+          stripFrag.appendChild(makeMiniSwatch(family, code, name, hex, nib));
+        });
+      } else {
+        stripFrag.appendChild(makeMiniSwatch(family, code, name, hex));
+      }
     });
     spectrumStrip.appendChild(stripFrag);
 
@@ -1298,7 +1349,12 @@
     const resetBtn = document.getElementById('resetBtn');
     const exportBtn = document.getElementById('exportBtn');
     const carouselProgressFill = document.getElementById('carouselProgressFill');
-    const total = COLORS.length;
+    // Posca total = sum of markers (color × nib) across all colors. Copic
+    // total = unique colors (each color is one marker). Drives the "X / N"
+    // counter in the toolbar.
+    const total = currentBrand === 'posca'
+      ? COLORS.reduce(function(sum, c) { return sum + nibsForColor(c[0], c[1]).length; }, 0)
+      : COLORS.length;
 
     const STORAGE_KEY = currentBrand + '-owned';
     const SLIDE_KEY = currentBrand + '-slide';
@@ -1435,42 +1491,32 @@
       });
     }
 
-    function updatePoscaSpectrumMini(code) {
-      // Recompute "any nib owned for this color" and reflect on the mini.
-      const anyOwned = swatches.some(function(s) {
-        return s.dataset.code === code && s.classList.contains('owned');
-      });
-      allTiles.forEach(function(t) {
-        if (t.classList.contains('mini') && t.dataset.code === code) {
-          setTileOwned(t, anyOwned);
+    function syncPoscaPair(code, nib, owned) {
+      // Sync every tile that represents this (code, nib) marker — spectrum
+      // mini and family-slide card. They share dataset.code and dataset.nib.
+      allTiles.forEach(function(tile) {
+        if (tile.dataset.code === code && tile.dataset.nib === nib) {
+          setTileOwned(tile, owned);
         }
       });
     }
 
     function applyOwnedSet(set) {
-      // Code-level apply: marks every tile (mini + every nib slot) for any
-      // listed code. For Posca this means "all nibs owned" — the right
-      // semantics for both reset (empty set) and code-only imports.
+      // Code-level apply: marks every tile (spectrum + every nib slot) for
+      // any listed code. For Posca this means "all nibs of that color" —
+      // the right semantics for reset (empty set) and code-only imports.
       allTiles.forEach(function(tile) { setTileOwned(tile, set.has(tile.dataset.code)); });
       updateStats();
     }
 
     function applyPoscaOwned(map) {
-      // Per-nib apply: each nib-slide swatch reflects map[code].includes(nib).
-      // Spectrum minis show "any nib owned for that code".
-      swatches.forEach(function(s) {
-        const code = s.dataset.code;
-        const nib = s.dataset.nib;
-        const owned = !!(nib && map[code] && map[code].indexOf(nib) !== -1);
-        setTileOwned(s, owned);
-      });
-      const ownedCodes = new Set(Object.keys(map).filter(function(k) {
-        return Array.isArray(map[k]) && map[k].length > 0;
-      }));
+      // Per-(code, nib) apply: every tile (spectrum mini + family card)
+      // reflects map[code].includes(nib).
       allTiles.forEach(function(t) {
-        if (t.classList.contains('mini')) {
-          setTileOwned(t, ownedCodes.has(t.dataset.code));
-        }
+        const code = t.dataset.code;
+        const nib = t.dataset.nib;
+        const owned = !!(nib && map[code] && map[code].indexOf(nib) !== -1);
+        setTileOwned(t, owned);
       });
       updateStats();
     }
@@ -1493,11 +1539,12 @@
       const isEmpty = visibleCount === 0;
       document.body.classList.toggle('empty-active', isEmpty);
       if (isEmpty) {
+        const noun = currentBrand === 'posca' ? 'markers' : 'colors';
         const text = document.getElementById('emptyStateText');
-        if (isSearching) text.textContent = 'No colors match your search.';
-        else if (filter === 'owned') text.textContent = "You haven't marked any colors as owned yet.";
-        else if (filter === 'missing') text.textContent = 'You own every color in this view.';
-        else text.textContent = 'No colors to show.';
+        if (isSearching) text.textContent = 'No ' + noun + ' match your search.';
+        else if (filter === 'owned') text.textContent = "You haven't marked any " + noun + ' as owned yet.';
+        else if (filter === 'missing') text.textContent = 'You own every ' + noun + ' in this view.';
+        else text.textContent = 'No ' + noun + ' to show.';
       }
     }
 
@@ -1581,49 +1628,25 @@
       toastTimer = setTimeout(function() { toast.classList.remove('visible'); }, 1400);
     }
 
-    // Tile click
+    // Tile click — Posca toggles per (color, nib); Copic toggles per color.
     allTiles.forEach(function(tile) {
       tile.addEventListener('click', function() {
         const code = tile.dataset.code;
         const name = tile.dataset.name || '';
         const nib = tile.dataset.nib;
-        const isMini = tile.classList.contains('mini');
+        const newOwned = !tile.classList.contains('owned');
 
-        let removed, label;
         if (currentBrand === 'posca' && nib) {
-          // Per-nib toggle on a family-slide swatch (PC-3M Yellow etc).
-          const newOwned = !tile.classList.contains('owned');
-          setTileOwned(tile, newOwned);
-          updatePoscaSpectrumMini(code);
-          removed = !newOwned;
-          label = (name ? code + ' · ' + name : code) + ' (PC-' + nib + ')';
-        } else if (currentBrand === 'posca' && isMini) {
-          // Spectrum mini: bulk toggle every available nib for this color.
-          const anyOwned = swatches.some(function(s) {
-            return s.dataset.code === code && s.classList.contains('owned');
-          });
-          const newOwned = !anyOwned;
-          let nibCount = 0;
-          swatches.forEach(function(s) {
-            if (s.dataset.code === code) {
-              setTileOwned(s, newOwned);
-              nibCount++;
-            }
-          });
-          setTileOwned(tile, newOwned);
-          removed = !newOwned;
-          label = (name ? code + ' · ' + name : code) +
-                  ' (' + nibCount + ' size' + (nibCount === 1 ? '' : 's') + ')';
+          syncPoscaPair(code, nib, newOwned);
         } else {
-          // Copic: toggle the color across the spectrum mini + family card.
-          const newOwned = !tile.classList.contains('owned');
           syncCode(code, newOwned);
-          removed = !newOwned;
-          label = name ? code + ' · ' + name : code;
         }
         updateStats();
         saveOwned();
-        showToast((removed ? 'Removed ' : 'Added ') + label, removed);
+
+        const base = name ? code + ' · ' + name : code;
+        const label = nib ? base + ' (PC-' + nib + ')' : base;
+        showToast((newOwned ? 'Added ' : 'Removed ') + label, !newOwned);
       });
       tile.addEventListener('keydown', function(e) {
         if (e.key === 'Enter' || e.key === ' ') {
