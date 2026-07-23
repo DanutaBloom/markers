@@ -34,7 +34,7 @@ for slug, size, label, tip in SIZES:
         # keys stay unique via a deterministic ordinal suffix in scrape order.
         seen[name] = seen.get(name, 0) + 1
         key = f'{size}:{name}' if seen[name] == 1 else f'{size}:{name}-{seen[name]}'
-        num = numbers.get(name.lower())
+        num = numbers.get(name.lower()) if seen[name] == 1 else None
         colors.append({'key': key, 'name': name, 'number': num, 'hex': hexv.lower(),
                        'category': category(name, num)})
     lineup.append({'size': size, 'label': label, 'tip': tip, 'colors': colors})
