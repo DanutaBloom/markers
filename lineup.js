@@ -400,7 +400,7 @@ const LINEUP = [
    {
     "key": "3M:Brown-2",
     "name": "Brown",
-    "number": "22",
+    "number": null,
     "hex": "#572d2d",
     "category": "Standard"
    },
