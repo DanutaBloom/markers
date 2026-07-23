@@ -1,21 +1,37 @@
 <!DOCTYPE html>
-<html lang="nl">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Posca voorraad</title>
+<meta name="color-scheme" content="light dark">
+<title>Posca inventory</title>
 <style>
-  /* Token system: paper-white chrome, ink text, one brand-red accent.
-     The 222 official pigment hexes are the real palette; everything else
-     stays monochrome so they render uncontaminated. */
+  /* Token system: paper/ink chrome, one brand-red accent. The 222 official
+     pigment hexes are the real palette; everything else stays neutral (both
+     themes) so they render uncontaminated. Theme via color-scheme +
+     light-dark(): system preference by default, manual override through
+     html[data-theme]. */
   :root {
-    --paper: #ffffff;
-    --ink: #141414;
-    --muted: #6b6b6b;
-    --faint: #a3a3a3;
-    --hairline: #e6e6e6;
-    --wash: #f5f5f4;
+    color-scheme: light dark;
+    --paper: light-dark(#ffffff, #161616);
+    --ink: light-dark(#141414, #ececec);
+    --muted: light-dark(#6b6b6b, #a1a1a1);
+    --faint: light-dark(#a3a3a3, #6f6f6f);
+    --hairline: light-dark(#e6e6e6, #2a2a2a);
+    --wash: light-dark(#f5f5f4, #222222);
+    /* Brand dot: the literal Posca red in both themes (decorative mark). */
     --posca-red: #e63312;
+    /* Functional accent (focus rings, dirty text): brightened in dark for
+       contrast on near-black surfaces. */
+    --accent: light-dark(#e63312, #ff5a3c);
+    /* Owned-chip edge: dark hairline on light paper, light hairline on dark
+       paper, so near-paper pigments keep a visible boundary. */
+    --chip-edge: light-dark(rgba(0, 0, 0, 0.12), rgba(255, 255, 255, 0.16));
+    /* Missing-state wash: pigment mixed toward the theme's neutral base.
+       The base sits slightly off the page surface in dark so even Black
+       (#2d2926) reads as a chip, not as background. */
+    --missing-base: light-dark(#ffffff, #232323);
+    --missing-keep: 20%;
     --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
     --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
     /* 4px spacing scale */
@@ -23,6 +39,17 @@
     /* Measured sticky-bar height (bar-top 56 + actions 52 + sizes 60 + border)
        plus a little air, so size jumps land headings below the bar. */
     --bar-h: 172px;
+  }
+  /* Darkening desaturates perceived pigment more than lightening does, so the
+     missing wash keeps a larger share of the pigment in dark. (light-dark()
+     only accepts colors, hence the explicit dark-scope overrides.) */
+  :root[data-theme="light"] { color-scheme: light; }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --missing-keep: 45%;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --missing-keep: 45%; }
   }
 
   * { box-sizing: border-box; }
@@ -105,7 +132,7 @@
   }
   .mode button:focus-visible,
   .sizes a:focus-visible {
-    outline: 2px solid var(--posca-red);
+    outline: 2px solid var(--accent);
     outline-offset: 2px;
   }
 
@@ -161,7 +188,7 @@
   }
   .copy-btn:active { background: var(--wash); }
   .copy-btn:focus-visible {
-    outline: 2px solid var(--posca-red);
+    outline: 2px solid var(--accent);
     outline-offset: 2px;
   }
   .copy-status {
@@ -173,7 +200,7 @@
     align-items: center;
     gap: var(--s1);
     font: 600 13px/1.2 var(--sans);
-    color: var(--posca-red);
+    color: var(--accent);
     text-align: right;
   }
   .dirty::before {
@@ -182,7 +209,7 @@
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: var(--posca-red);
+    background: var(--accent);
   }
   .dirty[hidden] { display: none; }
 
@@ -223,19 +250,6 @@
     font-size: 13px;
     color: var(--muted);
   }
-  .size-fill {
-    height: 3px;
-    background: var(--wash);
-    border-radius: 2px;
-    margin-top: var(--s2);
-    overflow: hidden;
-  }
-  .size-fill i {
-    display: block;
-    height: 100%;
-    background: var(--ink);
-    border-radius: 2px;
-  }
 
   .cat-label {
     margin: var(--s4) 0 var(--s2);
@@ -244,21 +258,17 @@
     color: var(--muted);
   }
 
-  /* Swatch grid: density per label mode */
+  /* Swatch grid: ONE geometry for all label modes. Switching Color/Number/
+     Name only changes what the fixed label row shows; nothing reflows. */
   .grid {
     display: grid;
     gap: 6px;
-    grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
-  }
-  body[data-mode="nummer"] .grid {
-    grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
-  }
-  body[data-mode="naam"] .grid {
-    grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
   }
 
-  /* Swatch: owned = solid pigment chip; missing = pale wash + dashed border.
-     Dashed border is the second (non-color) channel for the missing state. */
+  /* Swatch: owned = solid pigment chip; missing = neutral-mixed wash + dashed
+     border. Dashed border is the second (non-color) channel for the missing
+     state, and carries it for pigments near the page surface in either theme. */
   .sw {
     position: relative;
     display: block;
@@ -281,7 +291,7 @@
     inset: -3px;
   }
   .sw:focus-visible {
-    outline: 2px solid var(--posca-red);
+    outline: 2px solid var(--accent);
     outline-offset: 2px;
   }
   .chip {
@@ -289,26 +299,32 @@
     border-radius: 7px;
     background: var(--c);
     border: 1.5px solid transparent;
-    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+    box-shadow: inset 0 0 0 1px var(--chip-edge);
     transition: transform 120ms cubic-bezier(0.16, 1, 0.3, 1);
   }
   .sw:active .chip { transform: scale(0.92); }
   .sw.missing .chip {
-    background: color-mix(in srgb, var(--c) 20%, #fff);
+    background: color-mix(in srgb, var(--c) var(--missing-keep), var(--missing-base));
     border: 1.5px dashed var(--faint);
     box-shadow: none;
   }
 
+  /* Fixed-height label row: reserved in every mode (empty in Color mode) so
+     the toggle never shifts layout. */
+  .sw-label {
+    height: 15px;
+    margin-top: 3px;
+    overflow: hidden;
+  }
   .sw-num, .sw-name {
     display: none;
-    margin-top: 3px;
     text-align: center;
     color: var(--ink);
   }
   .sw.missing .sw-num,
   .sw.missing .sw-name { color: var(--muted); }
-  body[data-mode="nummer"] .sw-num { display: block; }
-  body[data-mode="naam"] .sw-name { display: block; }
+  body[data-mode="number"] .sw-num { display: block; }
+  body[data-mode="name"] .sw-name { display: block; }
   .sw-num {
     font: 500 11px/1.2 var(--mono);
     font-variant-numeric: tabular-nums;
@@ -325,29 +341,62 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+
+  /* Footer: theme override. A set-once preference, so it lives out of the
+     sticky bar's way. */
+  .foot {
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 var(--s4) var(--s8);
+  }
+  .foot-label {
+    font: 600 12px/1 var(--sans);
+    color: var(--muted);
+  }
 </style>
+<script>
+  // Apply a stored manual theme before first paint (auto = no attribute).
+  try {
+    var storedTheme = localStorage.getItem("posca-theme");
+    if (storedTheme === "light" || storedTheme === "dark") {
+      document.documentElement.dataset.theme = storedTheme;
+    }
+  } catch (e) { /* private mode */ }
+</script>
 </head>
-<body data-mode="kleur">
+<body data-mode="color">
   <header class="bar">
     <div class="bar-top">
-      <h1>Posca voorraad</h1>
-      <div class="mode" role="group" aria-label="Labelweergave">
-        <button type="button" data-mode-btn="kleur" aria-pressed="true">Kleur</button>
-        <button type="button" data-mode-btn="nummer" aria-pressed="false">Nummer</button>
-        <button type="button" data-mode-btn="naam" aria-pressed="false">Naam</button>
+      <h1>Posca inventory</h1>
+      <div class="mode" role="group" aria-label="Label display">
+        <button type="button" data-mode-btn="color" aria-pressed="true">Color</button>
+        <button type="button" data-mode-btn="number" aria-pressed="false">Number</button>
+        <button type="button" data-mode-btn="name" aria-pressed="false">Name</button>
       </div>
     </div>
     <div class="bar-actions">
       <div class="bar-actions-left">
-        <button type="button" id="copy-btn" class="copy-btn">Kopieer inventory.js</button>
+        <button type="button" id="copy-btn" class="copy-btn">Copy inventory.js</button>
         <span id="copy-status" class="copy-status" aria-live="polite"></span>
       </div>
-      <span id="dirty-indicator" class="dirty" hidden>niet opgeslagen</span>
+      <span id="dirty-indicator" class="dirty" hidden>unsaved changes</span>
     </div>
-    <nav class="sizes" aria-label="Ga naar maat"></nav>
+    <nav class="sizes" aria-label="Jump to size"></nav>
   </header>
 
   <main id="app"></main>
+
+  <footer class="foot">
+    <span class="foot-label" id="theme-label">Theme</span>
+    <div class="mode" role="group" aria-labelledby="theme-label">
+      <button type="button" data-theme-btn="auto" aria-pressed="true">Auto</button>
+      <button type="button" data-theme-btn="light" aria-pressed="false">Light</button>
+      <button type="button" data-theme-btn="dark" aria-pressed="false">Dark</button>
+    </div>
+  </footer>
 
   <script src="lineup.js"></script>
   <script src="inventory.js"></script>
@@ -355,8 +404,11 @@
     "use strict";
 
     var CATEGORY_ORDER = ["Standard", "Pastel", "Fluo", "Metallic", "Glitter"];
-    var MODES = ["kleur", "nummer", "naam"];
+    var MODES = ["color", "number", "name"];
+    var LEGACY_MODES = { kleur: "color", nummer: "number", naam: "name" };
     var MODE_KEY = "posca-label-mode";
+    var THEMES = ["auto", "light", "dark"];
+    var THEME_KEY = "posca-theme";
     var LS_KEY = "posca-inventory-local";
     var INVENTORY_HEADER = [
       '// Owned markers as lineup.js color keys ("SIZE:Color Name", duplicate names',
@@ -454,13 +506,13 @@
     function copyInventory() {
       var text = generateInventoryJs();
       if (!navigator.clipboard || !navigator.clipboard.writeText) {
-        showCopyStatus("Kopiëren niet beschikbaar: geen secure context (gebruik file:// of localhost).", 4000);
+        showCopyStatus("Copying needs a secure context (open via file:// or localhost).", 4000);
         return;
       }
       navigator.clipboard.writeText(text).then(function () {
-        showCopyStatus("Gekopieerd", 2000);
+        showCopyStatus("Copied", 2000);
       }, function () {
-        showCopyStatus("Kopiëren mislukt.", 4000);
+        showCopyStatus("Copy failed.", 4000);
       });
     }
 
@@ -484,9 +536,10 @@
     function getStoredMode() {
       try {
         var m = localStorage.getItem(MODE_KEY);
-        return MODES.indexOf(m) !== -1 ? m : "kleur";
+        if (LEGACY_MODES[m]) return LEGACY_MODES[m];   // pre-English stored value
+        return MODES.indexOf(m) !== -1 ? m : "color";
       } catch (e) {
-        return "kleur";
+        return "color";
       }
     }
 
@@ -495,6 +548,27 @@
       try { localStorage.setItem(MODE_KEY, mode); } catch (e) { /* private mode */ }
       document.querySelectorAll("[data-mode-btn]").forEach(function (btn) {
         btn.setAttribute("aria-pressed", String(btn.dataset.modeBtn === mode));
+      });
+    }
+
+    function getStoredTheme() {
+      try {
+        var t = localStorage.getItem(THEME_KEY);
+        return THEMES.indexOf(t) !== -1 ? t : "auto";
+      } catch (e) {
+        return "auto";
+      }
+    }
+
+    function setTheme(theme) {
+      if (theme === "auto") {
+        delete document.documentElement.dataset.theme;
+      } else {
+        document.documentElement.dataset.theme = theme;
+      }
+      try { localStorage.setItem(THEME_KEY, theme); } catch (e) { /* private mode */ }
+      document.querySelectorAll("[data-theme-btn]").forEach(function (btn) {
+        btn.setAttribute("aria-pressed", String(btn.dataset.themeBtn === theme));
       });
     }
 
@@ -531,17 +605,11 @@
 
         var head = el("div", "size-head");
         var code = el("h2", "size-code", size.label);
-        var count = el("span", "size-count", ownedCount + " van " + size.colors.length);
+        var count = el("span", "size-count", ownedCount + " of " + size.colors.length);
         head.appendChild(code);
         head.appendChild(count);
         section.appendChild(head);
         section.appendChild(el("p", "size-tip", size.tip));
-
-        var fill = el("div", "size-fill");
-        var fillBar = el("i");
-        fillBar.style.width = (100 * ownedCount / size.colors.length) + "%";
-        fill.appendChild(fillBar);
-        section.appendChild(fill);
 
         CATEGORY_ORDER.forEach(function (category) {
           var colors = size.colors
@@ -564,13 +632,15 @@
 
             sw.appendChild(el("div", "chip"));
 
+            var label = el("div", "sw-label");
             var num = el("div", "sw-num" + (color.number === null ? " num-unknown" : ""),
                          color.number === null ? "?" : color.number);
-            sw.appendChild(num);
+            label.appendChild(num);
 
             var name = el("div", "sw-name", color.name);
             name.dataset.full = color.name;
-            sw.appendChild(name);
+            label.appendChild(name);
+            sw.appendChild(label);
 
             grid.appendChild(sw);
           });
@@ -587,9 +657,13 @@
     document.querySelectorAll("[data-mode-btn]").forEach(function (btn) {
       btn.addEventListener("click", function () { setMode(btn.dataset.modeBtn); });
     });
+    document.querySelectorAll("[data-theme-btn]").forEach(function (btn) {
+      btn.addEventListener("click", function () { setTheme(btn.dataset.themeBtn); });
+    });
     document.getElementById("copy-btn").addEventListener("click", copyInventory);
 
     setMode(getStoredMode());
+    setTheme(getStoredTheme());
     buildNav();
     cleanStaleOverlay();
     render();
