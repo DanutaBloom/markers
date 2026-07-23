@@ -14,6 +14,20 @@ SIZES = [  # (scrape slug, size key, label, tip)
 scrape = json.load(open('scripts/posca-scrape.json'))
 numbers = json.load(open('scripts/number-map.json'))
 
+def normalize_name(name):
+    """Display-normalize a posca.com color name to consistent Title Case.
+
+    posca.com scrapes some names in ALL CAPS (e.g. 'CACAO BROWN', 'YELLOW
+    FLUO') and others already in mixed case (e.g. 'Apple Green'). Per the
+    2026-07-23 Round 2 decision, ALL-CAPS names get converted to Title Case;
+    names that are already mixed-case are left untouched (str.title() would
+    mangle things like 'McSomething', but posca.com has none of those, and
+    this only fires when the source name is fully upper-case).
+    """
+    if name.isupper():
+        return name.title()
+    return name
+
 def category(name, number):
     if number:
         pfx = number[0]
@@ -30,13 +44,23 @@ def category(name, number):
 lineup = []
 for slug, size, label, tip in SIZES:
     colors, seen = [], {}
-    for hexv, name in scrape[slug]['colors']:
+    for hexv, raw_name in scrape[slug]['colors']:
+        name = normalize_name(raw_name)
         # posca.com lists some names twice within a size (e.g. Brown in PC-3M);
         # keys stay unique via a deterministic ordinal suffix in scrape order.
         seen[name] = seen.get(name, 0) + 1
         key = f'{size}:{name}' if seen[name] == 1 else f'{size}:{name}-{seen[name]}'
-        num = numbers.get(name.lower()) if seen[name] == 1 else None
-        colors.append({'key': key, 'name': name, 'number': num, 'hex': hexv.lower(),
+        hexl = hexv.lower()
+        if seen[name] == 1:
+            num = numbers.get(name.lower())
+        else:
+            # Second+ occurrence of a duplicated name: only verified when a
+            # source explicitly pairs THIS hex to a number (see
+            # scripts/number-map.json 'name@hex' keys, e.g. the PC-3M second
+            # "Brown" == Dark Brown, hex #572d2d, verified 22 by two
+            # independent sources). Otherwise stays name-verbatim, number null.
+            num = numbers.get(f'{name.lower()}@{hexl}')
+        colors.append({'key': key, 'name': name, 'number': num, 'hex': hexl,
                        'category': category(name, num)})
     lineup.append({'size': size, 'label': label, 'tip': tip, 'colors': colors})
 

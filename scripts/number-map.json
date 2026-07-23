@@ -3,11 +3,11 @@
  "apricot": "P4",
  "aqua green": "P6",
  "beige": "45",
- "black": "24",
  "blue": "33",
  "bright yellow": "3",
  "bronze": "42",
  "brown": "21",
+ "brown@#572d2d": "22",
  "cacao brown": "84",
  "dark red": "14",
  "deep grey": "82",
@@ -18,7 +18,6 @@
  "fluorescent pink": "F13",
  "fluorescent red": "F15",
  "fuchsia": "11",
- "glacier blue": "P33",
  "glitter dark blue": "G33",
  "glitter green": "G6",
  "glitter light blue": "G8",
@@ -58,6 +57,5 @@
  "straw yellow": "73",
  "sunshine yellow": "P2",
  "violet": "12",
- "white": "255",
  "yellow": "2"
 }

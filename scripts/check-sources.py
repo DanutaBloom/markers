@@ -1,5 +1,9 @@
 import json
 scrape = json.load(open('scripts/posca-scrape.json'))
+# legacy-map.json is a historical snapshot only (numbers from the old page,
+# partly PoscART-derived) — NOT a verification source for scripts/number-map.json.
+# Number verification requires two sources independent of legacy-map and of
+# each other; see the R1 report for provenance.
 legacy = json.load(open('scripts/legacy-map.json'))
 EXPECTED = {'pc-1mr': 21, 'pc1-mc': 25, 'pc-3m': 42, 'pc-5m': 50, 'pc-5br': 16,
             'pc-7m': 15, 'pc-8k': 33, 'pc-17k': 10, 'pcf-350': 10}
