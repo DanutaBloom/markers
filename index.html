@@ -179,6 +179,7 @@
     border-radius: 50%;
     background: var(--posca-red);
   }
+  .dirty[hidden] { display: none; }
 
   main {
     padding: 0 var(--s4) var(--s8);
@@ -334,7 +335,7 @@
         <button type="button" id="copy-btn" class="copy-btn">kopieer inventory.js</button>
         <span id="copy-status" class="copy-status" aria-live="polite"></span>
       </div>
-      <span id="dirty-indicator" class="dirty" hidden>niet-gecommitte wijzigingen</span>
+      <span id="dirty-indicator" class="dirty" hidden>niet-opgeslagen wijzigingen</span>
     </div>
     <nav class="sizes" aria-label="Ga naar maat"></nav>
   </header>
