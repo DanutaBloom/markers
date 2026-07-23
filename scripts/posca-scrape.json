@@ -1,0 +1,949 @@
+{
+ "mopr-pcm-22": {
+  "declared_count": "0",
+  "found": 0,
+  "colors": []
+ },
+ "pc-17k": {
+  "declared_count": "10",
+  "found": 10,
+  "colors": [
+   [
+    "#2d2926",
+    "Black"
+   ],
+   [
+    "#0072ce",
+    "Blue"
+   ],
+   [
+    "#ba9b37",
+    "Gold"
+   ],
+   [
+    "#009a44",
+    "Green"
+   ],
+   [
+    "#5bc2e7",
+    "Light Blue"
+   ],
+   [
+    "#f57eb6",
+    "Pink"
+   ],
+   [
+    "#e03e52",
+    "Red"
+   ],
+   [
+    "#b9bbbb",
+    "Silver"
+   ],
+   [
+    "#ffffff",
+    "White"
+   ],
+   [
+    "#ffd100",
+    "Yellow"
+   ]
+  ]
+ },
+ "pc-1mr": {
+  "declared_count": "21",
+  "found": 21,
+  "colors": [
+   [
+    "#f7d674",
+    "Apricot"
+   ],
+   [
+    "#2d2926",
+    "Black"
+   ],
+   [
+    "#0072ce",
+    "Blue"
+   ],
+   [
+    "#69caf8",
+    "Glacier Blue"
+   ],
+   [
+    "#ba9b37",
+    "Gold"
+   ],
+   [
+    "#009a44",
+    "Green"
+   ],
+   [
+    "#d8a5f3",
+    "Lavender"
+   ],
+   [
+    "#5bc2e7",
+    "Light Blue"
+   ],
+   [
+    "#5d99ae",
+    "Metallic Blue"
+   ],
+   [
+    "#57a499",
+    "Metallic Green"
+   ],
+   [
+    "#a56d95",
+    "Metallic Pink"
+   ],
+   [
+    "#be6e58",
+    "Metallic Red"
+   ],
+   [
+    "#ff5c39",
+    "Orange"
+   ],
+   [
+    "#f57eb6",
+    "Pink"
+   ],
+   [
+    "#e03e52",
+    "Red"
+   ],
+   [
+    "#b9bbbb",
+    "Silver"
+   ],
+   [
+    "#fbd872",
+    "Straw Yellow"
+   ],
+   [
+    "#fbfb76",
+    "Sunshine Yellow"
+   ],
+   [
+    "#8246af",
+    "Violet"
+   ],
+   [
+    "#ffffff",
+    "White"
+   ],
+   [
+    "#ffd100",
+    "Yellow"
+   ]
+  ]
+ },
+ "pc-3m": {
+  "declared_count": "42",
+  "found": 42,
+  "colors": [
+   [
+    "#78be21",
+    "Apple Green"
+   ],
+   [
+    "#f7d674",
+    "Apricot"
+   ],
+   [
+    "#f5e1cc",
+    "Beige"
+   ],
+   [
+    "#2d2926",
+    "Black"
+   ],
+   [
+    "#0072ce",
+    "Blue"
+   ],
+   [
+    "#ff8f1c",
+    "Bright Yellow"
+   ],
+   [
+    "#bb8459",
+    "Bronze"
+   ],
+   [
+    "#c07d59",
+    "Brown"
+   ],
+   [
+    "#572d2d",
+    "Brown"
+   ],
+   [
+    "#9d2235",
+    "Dark Red"
+   ],
+   [
+    "#169387",
+    "Emerald Green"
+   ],
+   [
+    "#991e66",
+    "Fuchsia"
+   ],
+   [
+    "#006caa",
+    "Glitter Dark Blue"
+   ],
+   [
+    "#659959",
+    "Glitter Green"
+   ],
+   [
+    "#4694af",
+    "Glitter Light Blue"
+   ],
+   [
+    "#c27237",
+    "Glitter Orange"
+   ],
+   [
+    "#b97e90",
+    "Glitter Pink"
+   ],
+   [
+    "#bd6074",
+    "Glitter Red"
+   ],
+   [
+    "#725899",
+    "Glitter Violet"
+   ],
+   [
+    "#bfb000",
+    "Glitter Yellow"
+   ],
+   [
+    "#ba9b37",
+    "Gold"
+   ],
+   [
+    "#009a44",
+    "Green"
+   ],
+   [
+    "#97999b",
+    "Grey"
+   ],
+   [
+    "#f2eeca",
+    "Ivory"
+   ],
+   [
+    "#3e4827",
+    "Khaki Green"
+   ],
+   [
+    "#d8a5f3",
+    "Lavender"
+   ],
+   [
+    "#5bc2e7",
+    "Light Blue"
+   ],
+   [
+    "#80e0a7",
+    "Light Green"
+   ],
+   [
+    "#ffbe9f",
+    "Light Orange"
+   ],
+   [
+    "#eab8e4",
+    "Light Pink"
+   ],
+   [
+    "#7d55c7",
+    "Lilac"
+   ],
+   [
+    "#002b49",
+    "Navy Blue"
+   ],
+   [
+    "#f57eb6",
+    "Pink"
+   ],
+   [
+    "#e03e52",
+    "Red"
+   ],
+   [
+    "#b46b7a",
+    "Red Wine"
+   ],
+   [
+    "#b9bbbb",
+    "Silver"
+   ],
+   [
+    "#009cde",
+    "Sky Blue"
+   ],
+   [
+    "#5b6770",
+    "Slate Grey"
+   ],
+   [
+    "#fbfb76",
+    "Sunshine Yellow"
+   ],
+   [
+    "#8246af",
+    "Violet"
+   ],
+   [
+    "#ffffff",
+    "White"
+   ],
+   [
+    "#ffd100",
+    "Yellow"
+   ]
+  ]
+ },
+ "pc-5br": {
+  "declared_count": "16",
+  "found": 16,
+  "colors": [
+   [
+    "#f5e1cc",
+    "Beige"
+   ],
+   [
+    "#2d2926",
+    "Black"
+   ],
+   [
+    "#0072ce",
+    "Blue"
+   ],
+   [
+    "#c07d59",
+    "Brown"
+   ],
+   [
+    "#ff8da1",
+    "Coral"
+   ],
+   [
+    "#009a44",
+    "Green"
+   ],
+   [
+    "#97999b",
+    "Grey"
+   ],
+   [
+    "#5bc2e7",
+    "Light Blue"
+   ],
+   [
+    "#80e0a7",
+    "Light Green"
+   ],
+   [
+    "#eab8e4",
+    "Light Pink"
+   ],
+   [
+    "#ff5c39",
+    "Orange"
+   ],
+   [
+    "#f57eb6",
+    "Pink"
+   ],
+   [
+    "#e03e52",
+    "Red"
+   ],
+   [
+    "#8246af",
+    "Violet"
+   ],
+   [
+    "#ffffff",
+    "White"
+   ],
+   [
+    "#ffd100",
+    "Yellow"
+   ]
+  ]
+ },
+ "pc-5m": {
+  "declared_count": "50",
+  "found": 50,
+  "colors": [
+   [
+    "#78be21",
+    "Apple Green"
+   ],
+   [
+    "#f7d674",
+    "Apricot"
+   ],
+   [
+    "#71dbd4",
+    "Aqua Green"
+   ],
+   [
+    "#f5e1cc",
+    "Beige"
+   ],
+   [
+    "#2d2926",
+    "Black"
+   ],
+   [
+    "#0072ce",
+    "Blue"
+   ],
+   [
+    "#ff8f1c",
+    "Bright Yellow"
+   ],
+   [
+    "#bb8459",
+    "Bronze"
+   ],
+   [
+    "#c07d59",
+    "Brown"
+   ],
+   [
+    "#7c3a2d",
+    "CACAO BROWN"
+   ],
+   [
+    "#ff8da1",
+    "Coral"
+   ],
+   [
+    "#545859",
+    "DEEP GREY"
+   ],
+   [
+    "#169387",
+    "Emerald Green"
+   ],
+   [
+    "#205c40",
+    "ENGLISH GREEN"
+   ],
+   [
+    "#ff7244",
+    "Fluorescent Orange"
+   ],
+   [
+    "#ff3eb5",
+    "Fluorescent Pink"
+   ],
+   [
+    "#ff5256",
+    "Fluorescent Red"
+   ],
+   [
+    "#ba9b37",
+    "Gold"
+   ],
+   [
+    "#cace58",
+    "Grape Green"
+   ],
+   [
+    "#009a44",
+    "Green"
+   ],
+   [
+    "#97999b",
+    "Grey"
+   ],
+   [
+    "#f2eeca",
+    "Ivory"
+   ],
+   [
+    "#d8a5f3",
+    "Lavender"
+   ],
+   [
+    "#5bc2e7",
+    "Light Blue"
+   ],
+   [
+    "#80e0a7",
+    "Light Green"
+   ],
+   [
+    "#ffbe9f",
+    "Light Orange"
+   ],
+   [
+    "#eab8e4",
+    "Light Pink"
+   ],
+   [
+    "#7d55c7",
+    "Lilac"
+   ],
+   [
+    "#5d99ae",
+    "Metallic Blue"
+   ],
+   [
+    "#57a499",
+    "Metallic Green"
+   ],
+   [
+    "#a56d95",
+    "Metallic Pink"
+   ],
+   [
+    "#be6e58",
+    "Metallic Red"
+   ],
+   [
+    "#856ca2",
+    "Metallic Violet"
+   ],
+   [
+    "#c69214",
+    "OCHRE"
+   ],
+   [
+    "#ff5c39",
+    "Orange"
+   ],
+   [
+    "#f57eb6",
+    "Pink"
+   ],
+   [
+    "#330072",
+    "PRUSSIAN BLUE"
+   ],
+   [
+    "#893b67",
+    "Raspberry"
+   ],
+   [
+    "#e03e52",
+    "Red"
+   ],
+   [
+    "#b46b7a",
+    "Red Wine"
+   ],
+   [
+    "#b7312c",
+    "RUBY RED"
+   ],
+   [
+    "#b9bbbb",
+    "Silver"
+   ],
+   [
+    "#009cde",
+    "Sky Blue"
+   ],
+   [
+    "#5b6770",
+    "Slate Grey"
+   ],
+   [
+    "#fbd872",
+    "Straw Yellow"
+   ],
+   [
+    "#fbfb76",
+    "Sunshine Yellow"
+   ],
+   [
+    "#8246af",
+    "Violet"
+   ],
+   [
+    "#ffffff",
+    "White"
+   ],
+   [
+    "#ffd100",
+    "Yellow"
+   ],
+   [
+    "#ffff2e",
+    "YELLOW FLUO"
+   ]
+  ]
+ },
+ "pc-7m": {
+  "declared_count": "15",
+  "found": 15,
+  "colors": [
+   [
+    "#2d2926",
+    "Black"
+   ],
+   [
+    "#0072ce",
+    "Blue"
+   ],
+   [
+    "#ff8f1c",
+    "Bright Yellow"
+   ],
+   [
+    "#c07d59",
+    "Brown"
+   ],
+   [
+    "#009a44",
+    "Green"
+   ],
+   [
+    "#97999b",
+    "Grey"
+   ],
+   [
+    "#5bc2e7",
+    "Light Blue"
+   ],
+   [
+    "#80e0a7",
+    "Light Green"
+   ],
+   [
+    "#ffbe9f",
+    "Light Orange"
+   ],
+   [
+    "#ff5c39",
+    "Orange"
+   ],
+   [
+    "#f57eb6",
+    "Pink"
+   ],
+   [
+    "#e03e52",
+    "Red"
+   ],
+   [
+    "#8246af",
+    "Violet"
+   ],
+   [
+    "#ffffff",
+    "White"
+   ],
+   [
+    "#ffd100",
+    "Yellow"
+   ]
+  ]
+ },
+ "pc-8k": {
+  "declared_count": "33",
+  "found": 33,
+  "colors": [
+   [
+    "#f5e1cc",
+    "Beige"
+   ],
+   [
+    "#2d2926",
+    "Black"
+   ],
+   [
+    "#0072ce",
+    "Blue"
+   ],
+   [
+    "#ff8f1c",
+    "Bright Yellow"
+   ],
+   [
+    "#bb8459",
+    "Bronze"
+   ],
+   [
+    "#c07d59",
+    "Brown"
+   ],
+   [
+    "#00bf6f",
+    "Fluorescent Green"
+   ],
+   [
+    "#ff7244",
+    "Fluorescent Orange"
+   ],
+   [
+    "#ff3eb5",
+    "Fluorescent Pink"
+   ],
+   [
+    "#ff5256",
+    "Fluorescent Red"
+   ],
+   [
+    "#ba9b37",
+    "Gold"
+   ],
+   [
+    "#009a44",
+    "Green"
+   ],
+   [
+    "#97999b",
+    "Grey"
+   ],
+   [
+    "#f2eeca",
+    "Ivory"
+   ],
+   [
+    "#5bc2e7",
+    "Light Blue"
+   ],
+   [
+    "#80e0a7",
+    "Light Green"
+   ],
+   [
+    "#ffbe9f",
+    "Light Orange"
+   ],
+   [
+    "#5d99ae",
+    "Metallic Blue"
+   ],
+   [
+    "#57a499",
+    "Metallic Green"
+   ],
+   [
+    "#a56d95",
+    "Metallic Pink"
+   ],
+   [
+    "#be6e58",
+    "Metallic Red"
+   ],
+   [
+    "#856ca2",
+    "Metallic Violet"
+   ],
+   [
+    "#ff5c39",
+    "Orange"
+   ],
+   [
+    "#ffff2e",
+    "Pale Fluorescent Orange"
+   ],
+   [
+    "#f57eb6",
+    "Pink"
+   ],
+   [
+    "#e03e52",
+    "Red"
+   ],
+   [
+    "#b46b7a",
+    "Red Wine"
+   ],
+   [
+    "#b9bbbb",
+    "Silver"
+   ],
+   [
+    "#5b6770",
+    "Slate Grey"
+   ],
+   [
+    "#fbd872",
+    "Straw Yellow"
+   ],
+   [
+    "#8246af",
+    "Violet"
+   ],
+   [
+    "#ffffff",
+    "White"
+   ],
+   [
+    "#ffd100",
+    "Yellow"
+   ]
+  ]
+ },
+ "pc1-mc": {
+  "declared_count": "25",
+  "found": 25,
+  "colors": [
+   [
+    "#f7d674",
+    "Apricot"
+   ],
+   [
+    "#f5e1cc",
+    "Beige"
+   ],
+   [
+    "#2d2926",
+    "Black"
+   ],
+   [
+    "#0072ce",
+    "Blue"
+   ],
+   [
+    "#ff8f1c",
+    "Bright Yellow"
+   ],
+   [
+    "#c07d59",
+    "Brown"
+   ],
+   [
+    "#ba9b37",
+    "Gold"
+   ],
+   [
+    "#009a44",
+    "Green"
+   ],
+   [
+    "#97999b",
+    "Grey"
+   ],
+   [
+    "#f2eeca",
+    "Ivory"
+   ],
+   [
+    "#d8a5f3",
+    "Lavender"
+   ],
+   [
+    "#5bc2e7",
+    "Light Blue"
+   ],
+   [
+    "#80e0a7",
+    "Light Green"
+   ],
+   [
+    "#ffbe9f",
+    "Light Orange"
+   ],
+   [
+    "#eab8e4",
+    "Light Pink"
+   ],
+   [
+    "#f57eb6",
+    "Pink"
+   ],
+   [
+    "#e03e52",
+    "Red"
+   ],
+   [
+    "#b46b7a",
+    "Red Wine"
+   ],
+   [
+    "#b9bbbb",
+    "Silver"
+   ],
+   [
+    "#5b6770",
+    "Slate Grey"
+   ],
+   [
+    "#fbd872",
+    "Straw Yellow"
+   ],
+   [
+    "#fbfb76",
+    "Sunshine Yellow"
+   ],
+   [
+    "#8246af",
+    "Violet"
+   ],
+   [
+    "#ffffff",
+    "White"
+   ],
+   [
+    "#ffd100",
+    "Yellow"
+   ]
+  ]
+ },
+ "pcf-350": {
+  "declared_count": "10",
+  "found": 10,
+  "colors": [
+   [
+    "#2d2926",
+    "Black"
+   ],
+   [
+    "#0072ce",
+    "Blue"
+   ],
+   [
+    "#ba9b37",
+    "Gold"
+   ],
+   [
+    "#009a44",
+    "Green"
+   ],
+   [
+    "#5bc2e7",
+    "Light Blue"
+   ],
+   [
+    "#f57eb6",
+    "Pink"
+   ],
+   [
+    "#e03e52",
+    "Red"
+   ],
+   [
+    "#b9bbbb",
+    "Silver"
+   ],
+   [
+    "#ffffff",
+    "White"
+   ],
+   [
+    "#ffd100",
+    "Yellow"
+   ]
+  ]
+ }
+}
