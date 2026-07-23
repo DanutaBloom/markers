@@ -131,6 +131,55 @@
   }
   .sizes a:active { background: var(--wash); }
 
+  .bar-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s3);
+    padding: 0 var(--s4) var(--s2);
+  }
+  .bar-actions-left {
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+  }
+  .copy-btn {
+    appearance: none;
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    background: var(--paper);
+    color: var(--ink);
+    font: 600 13px/1 var(--sans);
+    padding: 0 var(--s4);
+    min-height: 44px;
+    cursor: pointer;
+    transition: border-color 150ms, background-color 150ms;
+  }
+  .copy-btn:active { background: var(--wash); }
+  .copy-btn:focus-visible {
+    outline: 2px solid var(--posca-red);
+    outline-offset: 2px;
+  }
+  .copy-status {
+    font: 500 13px/1.2 var(--sans);
+    color: var(--muted);
+  }
+  .dirty {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s1);
+    font: 600 13px/1.2 var(--sans);
+    color: var(--posca-red);
+  }
+  .dirty::before {
+    content: "";
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--posca-red);
+  }
+
   main {
     padding: 0 var(--s4) var(--s8);
     max-width: 720px;
@@ -204,7 +253,31 @@
 
   /* Swatch: owned = solid pigment chip; missing = pale wash + dashed border.
      Dashed border is the second (non-color) channel for the missing state. */
-  .sw { min-width: 0; }
+  .sw {
+    position: relative;
+    display: block;
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: inherit;
+    text-align: inherit;
+    cursor: pointer;
+    appearance: none;
+  }
+  /* Invisible hit-area expansion: keeps chip visual size, widens the
+     tappable box toward ~44px without shifting grid layout. */
+  .sw::before {
+    content: "";
+    position: absolute;
+    inset: -3px;
+  }
+  .sw:focus-visible {
+    outline: 2px solid var(--posca-red);
+    outline-offset: 2px;
+  }
   .chip {
     aspect-ratio: 1;
     border-radius: 7px;
@@ -256,6 +329,13 @@
         <button type="button" data-mode-btn="naam" aria-pressed="false">Naam</button>
       </div>
     </div>
+    <div class="bar-actions">
+      <div class="bar-actions-left">
+        <button type="button" id="copy-btn" class="copy-btn">kopieer inventory.js</button>
+        <span id="copy-status" class="copy-status" aria-live="polite"></span>
+      </div>
+      <span id="dirty-indicator" class="dirty" hidden>niet-gecommitte wijzigingen</span>
+    </div>
     <nav class="sizes" aria-label="Ga naar maat"></nav>
   </header>
 
@@ -269,6 +349,112 @@
     var CATEGORY_ORDER = ["Standard", "Pastel", "Fluo", "Metallic", "Glitter"];
     var MODES = ["kleur", "nummer", "naam"];
     var MODE_KEY = "posca-label-mode";
+    var LS_KEY = "posca-inventory-local";
+    var INVENTORY_HEADER = [
+      '// Owned markers as lineup.js color keys ("SIZE:Color Name", duplicate names',
+      '// carry an ordinal suffix like "3M:Brown-2").',
+      "// Updated by tapping in the page (copy button) or via Claude Code."
+    ].join("\n");
+
+    // --- Ownership overlay (localStorage), relative to committed INVENTORY ---
+
+    function loadOverlay() {
+      try {
+        var raw = JSON.parse(localStorage.getItem(LS_KEY));
+        if (raw && Array.isArray(raw.added) && Array.isArray(raw.removed)) return raw;
+      } catch (e) { /* ignore malformed/missing overlay */ }
+      return { added: [], removed: [] };
+    }
+
+    function saveOverlay(o) {
+      try { localStorage.setItem(LS_KEY, JSON.stringify(o)); }
+      catch (e) { /* storage unavailable (private mode, quota) */ }
+    }
+
+    function effectiveOwned() {
+      var o = loadOverlay();
+      var set = new Set(INVENTORY);
+      o.added.forEach(function (k) { set.add(k); });
+      o.removed.forEach(function (k) { set.delete(k); });
+      return set;
+    }
+
+    function toggleKey(key) {
+      var o = loadOverlay();
+      var committed = INVENTORY.indexOf(key) !== -1;
+      var owned = effectiveOwned().has(key);
+      if (owned) {                       // -> not owned
+        o.added = o.added.filter(function (k) { return k !== key; });
+        if (committed && o.removed.indexOf(key) === -1) o.removed.push(key);
+      } else {                           // -> owned
+        o.removed = o.removed.filter(function (k) { return k !== key; });
+        if (!committed && o.added.indexOf(key) === -1) o.added.push(key);
+      }
+      saveOverlay(o);
+      render();                          // re-renders swatch states, counters, dirty indicator
+    }
+
+    // Drop overlay entries already reflected in the committed INVENTORY
+    // (an "added" key that's now committed, or a "removed" key that's now
+    // absent) so a freshly pasted inventory.js clears the dirty state.
+    function cleanStaleOverlay() {
+      var o = loadOverlay();
+      var committed = new Set(INVENTORY);
+      var added = o.added.filter(function (k) { return !committed.has(k); });
+      var removed = o.removed.filter(function (k) { return committed.has(k); });
+      if (added.length !== o.added.length || removed.length !== o.removed.length) {
+        saveOverlay({ added: added, removed: removed });
+      }
+    }
+
+    function updateDirtyIndicator() {
+      var o = loadOverlay();
+      var dirty = (o.added.length + o.removed.length) > 0;
+      var indicator = document.getElementById("dirty-indicator");
+      if (indicator) indicator.hidden = !dirty;
+    }
+
+    // Full inventory.js file content from effectiveOwned(), keys ordered by
+    // lineup size order then by name (LINEUP's own color order).
+    function generateInventoryJs() {
+      var owned = effectiveOwned();
+      var keys = [];
+      LINEUP.forEach(function (size) {
+        size.colors.forEach(function (c) {
+          if (owned.has(c.key)) keys.push(c.key);
+        });
+      });
+      if (keys.length === 0) {
+        return INVENTORY_HEADER + "\nconst INVENTORY = [];\n";
+      }
+      var lines = keys.map(function (k) { return "  " + JSON.stringify(k) + ","; });
+      return INVENTORY_HEADER + "\nconst INVENTORY = [\n" + lines.join("\n") + "\n];\n";
+    }
+
+    function showCopyStatus(text, timeoutMs) {
+      var status = document.getElementById("copy-status");
+      if (!status) return;
+      status.textContent = text;
+      if (timeoutMs) {
+        window.clearTimeout(status._clearTimer);
+        status._clearTimer = window.setTimeout(function () {
+          status.textContent = "";
+        }, timeoutMs);
+      }
+    }
+
+    function copyInventory() {
+      var text = generateInventoryJs();
+      if (!navigator.clipboard || !navigator.clipboard.writeText) {
+        showCopyStatus("Kopiëren niet beschikbaar: geen secure context (gebruik file:// of localhost).", 4000);
+        return;
+      }
+      navigator.clipboard.writeText(text).then(function () {
+        showCopyStatus("Gekopieerd", 2000);
+      }, function () {
+        showCopyStatus("Kopiëren mislukt.", 4000);
+      });
+    }
 
     // Spectrum sort: greys/browns first by lightness, then hue (spec-fixed).
     function spectrumKey(hex) {
@@ -323,7 +509,7 @@
 
     // Re-callable: Task 6 re-renders after toggling INVENTORY entries.
     function render() {
-      var owned = new Set(INVENTORY);
+      var owned = effectiveOwned();
       var main = document.getElementById("app");
       main.textContent = "";
 
@@ -360,10 +546,13 @@
 
           colors.forEach(function (color) {
             var isOwned = owned.has(color.key);
-            var sw = el("div", "sw " + (isOwned ? "owned" : "missing"));
+            var sw = el("button", "sw " + (isOwned ? "owned" : "missing"));
+            sw.type = "button";
             sw.dataset.key = color.key;
             sw.title = color.name + (color.number !== null ? " (" + color.number + ")" : "");
+            sw.setAttribute("aria-pressed", String(isOwned));
             sw.style.setProperty("--c", color.hex);
+            sw.addEventListener("click", function () { toggleKey(color.key); });
 
             sw.appendChild(el("div", "chip"));
 
@@ -383,14 +572,18 @@
 
         main.appendChild(section);
       });
+
+      updateDirtyIndicator();
     }
 
     document.querySelectorAll("[data-mode-btn]").forEach(function (btn) {
       btn.addEventListener("click", function () { setMode(btn.dataset.modeBtn); });
     });
+    document.getElementById("copy-btn").addEventListener("click", copyInventory);
 
     setMode(getStoredMode());
     buildNav();
+    cleanStaleOverlay();
     render();
   </script>
 </body>
