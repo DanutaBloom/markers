@@ -31,7 +31,7 @@ const LINEUP = [
     "name": "Glacier Blue",
     "number": null,
     "hex": "#69caf8",
-    "category": "Standard"
+    "category": "Pastel"
    },
    {
     "key": "1MR:Gold",

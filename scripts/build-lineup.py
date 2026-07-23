@@ -28,6 +28,38 @@ def normalize_name(name):
         return name.title()
     return name
 
+# Category overrides for null-numbered colors (2026-07-23, Round 3).
+#
+# When a color's number is null, category() falls back to name-based
+# detection, which defaults to Standard for anything without an obvious
+# Glitter/Metallic/Fluorescent cue — wrong for colors that are actually
+# Pastel-series. An override is recorded ONLY when BOTH saved independent
+# sources agree on a non-Standard category via their section/series
+# placement (not the posca.com number, which is null for these):
+#
+#   - scripts/second-source.html (PoscART PMS chart): flat name/number/hex
+#     table; Glacier Blue -> number "P33" (P-prefix = Pastel).
+#   - scripts/source-jennyscrayoncollection.html + .jpg (Jenny's Crayon
+#     Collection infographic): PC-1MR text lists the 5 colors exclusive to
+#     the UK assortment in bold — Apricot(P4), Aqua Green(P6), Glacier
+#     Blue, Lavender(P11), Sunshine Yellow(P2). The other 4 are confirmed
+#     Pastel-series (P-prefixed) in second-source.html, so Jenny's places
+#     Glacier Blue in that same series-grouping even though her own
+#     infographic (all 65 non-UK colors) doesn't carry it individually.
+#   Both sources -> Pastel.
+#
+# Checked and REJECTED (fallback Standard stands, no override written):
+#   - Coral (5M, 5BR): both sources only have "Coral Pink" (#66, plain
+#     number = Standard in both) — no non-Standard agreement either way.
+#   - Grape Green (5M): absent from both sources entirely.
+#   - Black: absent from second-source.html; Jenny's infographic has it
+#     plain (#24, Standard) — only one source has data.
+#   - White: plain in both sources (#255 second-source, #1 Jenny's) —
+#     both agree, but the agreed category is Standard, so no override.
+CATEGORY_OVERRIDES = {
+    'glacier blue': 'Pastel',
+}
+
 def category(name, number):
     if number:
         pfx = number[0]
@@ -36,6 +68,8 @@ def category(name, number):
         if pfx == 'M': return 'Metallic'
         if pfx == 'G': return 'Glitter'
         return 'Standard'
+    override = CATEGORY_OVERRIDES.get(name.lower())
+    if override: return override
     for p, c in (('Glitter', 'Glitter'), ('Metallic', 'Metallic'), ('Fluorescent', 'Fluo')):
         if name.startswith(p): return c
     if 'fluo' in name.lower(): return 'Fluo'
