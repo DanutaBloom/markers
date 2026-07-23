@@ -35,8 +35,11 @@ const LINEUP = [
     label: 'PC-5M',
     tip: 'medium 1.8-2.5 mm',
     colors: [
-      // name/hex verbatim from posca.com; number null when unverified
-      { name: 'Blue', number: '33', hex: '#0072ce', category: 'Standard' },
+      // name/hex verbatim from posca.com; number null when unverified.
+      // key = 'SIZE:Name'; when posca.com lists the same name twice within a
+      // size (real case: Brown 2x in PC-3M), later duplicates get a
+      // deterministic ordinal suffix in scrape order: '3M:Brown', '3M:Brown-2'.
+      { key: '5M:Blue', name: 'Blue', number: '33', hex: '#0072ce', category: 'Standard' },
       // ...
     ]
   },
@@ -47,7 +50,8 @@ const LINEUP = [
 `inventory.js`:
 
 ```js
-// Owned markers as "SIZE:Color Name" (name exactly as in lineup.js).
+// Owned markers as lineup.js color keys ("SIZE:Color Name", duplicate names
+// carry an ordinal suffix like "3M:Brown-2").
 // Updated by tapping in the page (copy button) or via Claude Code.
 const INVENTORY = [];
 ```
@@ -65,7 +69,7 @@ Categories: `Standard`, `Pastel`, `Fluo`, `Metallic`, `Glitter`. Derived from th
 
 **Interfaces:**
 - Produces: `posca-scrape.json` — `{ "<page-slug>": { "declared_count": "42", "found": 42, "colors": [["#hex","Name"], ...] } }` with page slugs `pc-1mr, pc1-mc, pc-3m, pc-5m, pc-5br, pc-7m, pc-8k, pc-17k, pcf-350` (plus `mopr-pcm-22`, ignored downstream)
-- Produces: `legacy-map.json` — `[{ "category": "Standard", "number": "33", "name": "Blue", "hex": "#025094" }, ...]` (73 entries from the old page)
+- Produces: `legacy-map.json` — `[{ "category": "Standard", "number": "33", "name": "Blue", "hex": "#025094" }, ...]` (68 entries from the old page; verified count)
 
 - [ ] **Step 1: Copy the scrape snapshot into the repo**
 
@@ -135,6 +139,7 @@ git add scripts/ && git commit -m "chore: snapshot posca.com scrape and legacy n
 2. Fetch one independent retailer/manufacturer color chart that lists Posca cap numbers with names (try in order until one works: `https://www.cultpens.com/pages/posca-colour-chart`, `https://www.jacksonsart.com/blog/2021/04/16/posca-paint-markers-colour-chart/`, a uni-ball regional site found via `mcp__gemini-grounding__search_with_grounding` for "posca colour chart cap numbers"). Save the raw page under `scripts/` for traceability.
 3. A number is **verified** when legacy and the second source agree, or when the second source states it explicitly and legacy has no entry.
 4. Names present on posca.com but in neither source → `number: null`. Print every null so the report can list them.
+5. When a size lists the same name twice (Brown in PC-3M), name-based lookup cannot tell the entries apart: only the first occurrence gets the mapped number; later duplicates get `number: null` unless a source explicitly disambiguates them by hex or by listing two numbered entries.
 
 - [ ] **Step 1: Build number-map.json following the procedure above** (manual research step; store result as JSON, lowercase-name keys)
 
@@ -152,10 +157,11 @@ counts = {s['size']: len(s['colors']) for s in lineup}
 assert counts == {'1MR': 21, '1MC': 25, '3M': 42, '5M': 50, '5BR': 16,
                   '7M': 15, '8K': 33, '17K': 10, 'F350': 10}, counts
 cats = {'Standard', 'Pastel', 'Fluo', 'Metallic', 'Glitter'}
+all_keys = [c['key'] for s in lineup for c in s['colors']]
+assert len(all_keys) == len(set(all_keys)), 'duplicate keys'
 for s in lineup:
-    names = [c['name'] for c in s['colors']]
-    assert len(names) == len(set(names)), f"dupe name in {s['size']}"
     for c in s['colors']:
+        assert c['key'].startswith(s['size'] + ':'), c
         assert re.fullmatch(r'#[0-9a-f]{6}', c['hex']), c
         assert c['category'] in cats, c
         assert c['number'] is None or re.fullmatch(r'[PFMG]?\d+', c['number']), c
@@ -204,10 +210,14 @@ def category(name, number):
 
 lineup = []
 for slug, size, label, tip in SIZES:
-    colors = []
+    colors, seen = [], {}
     for hexv, name in scrape[slug]['colors']:
+        # posca.com lists some names twice within a size (e.g. Brown in PC-3M);
+        # keys stay unique via a deterministic ordinal suffix in scrape order.
+        seen[name] = seen.get(name, 0) + 1
+        key = f'{size}:{name}' if seen[name] == 1 else f'{size}:{name}-{seen[name]}'
         num = numbers.get(name.lower())
-        colors.append({'name': name, 'number': num, 'hex': hexv.lower(),
+        colors.append({'key': key, 'name': name, 'number': num, 'hex': hexv.lower(),
                        'category': category(name, num)})
     lineup.append({'size': size, 'label': label, 'tip': tip, 'colors': colors})
 
@@ -253,7 +263,7 @@ git add inventory.js && git commit -m "feat: empty inventory (fresh Posca-only s
 
 **Interfaces:**
 - Consumes: `LINEUP` (Task 2), `INVENTORY` (Task 3) via `<script src="lineup.js">` and `<script src="inventory.js">`
-- Produces: DOM contract for Tasks 6-7: each swatch element carries `data-key="SIZE:Name"` and class `owned` or `missing`; each size section has `id="size-<SIZE>"` and a counter element with class `size-count`; `<body data-mode="kleur|nummer|naam">` reflects the label mode.
+- Produces: DOM contract for Tasks 6-7: each swatch element carries `data-key` equal to its lineup.js color `key` and class `owned` or `missing`; each size section has `id="size-<SIZE>"` and a counter element with class `size-count`; `<body data-mode="kleur|nummer|naam">` reflects the label mode.
 
 - [ ] **Step 1: Load the design skills (MANDATORY, before any code)**
 
