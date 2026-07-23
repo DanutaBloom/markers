@@ -990,7 +990,7 @@ const LINEUP = [
     "name": "YELLOW FLUO",
     "number": null,
     "hex": "#ffff2e",
-    "category": "Standard"
+    "category": "Fluo"
    }
   ]
  },
@@ -1396,7 +1396,7 @@ const LINEUP = [
     "name": "Pale Fluorescent Orange",
     "number": null,
     "hex": "#ffff2e",
-    "category": "Standard"
+    "category": "Fluo"
    },
    {
     "key": "8K:Pink",

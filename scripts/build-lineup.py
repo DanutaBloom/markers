@@ -24,6 +24,7 @@ def category(name, number):
         return 'Standard'
     for p, c in (('Glitter', 'Glitter'), ('Metallic', 'Metallic'), ('Fluorescent', 'Fluo')):
         if name.startswith(p): return c
+    if 'fluo' in name.lower(): return 'Fluo'
     return 'Standard'
 
 lineup = []
