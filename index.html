@@ -16,14 +16,17 @@
     --paper: light-dark(#ffffff, #161616);
     --ink: light-dark(#141414, #ececec);
     --muted: light-dark(#6b6b6b, #a1a1a1);
-    --faint: light-dark(#a3a3a3, #6f6f6f);
+    /* Missing-state dashed border: tuned to hold >= 3:1 against the closest
+       chip fill in each theme (White wash on light, Black wash on dark). */
+    --faint: light-dark(#909090, #7a7a7a);
     --hairline: light-dark(#e6e6e6, #2a2a2a);
     --wash: light-dark(#f5f5f4, #222222);
     /* Brand dot: the literal Posca red in both themes (decorative mark). */
     --posca-red: #e63312;
-    /* Functional accent (focus rings, dirty text): brightened in dark for
-       contrast on near-black surfaces. */
-    --accent: light-dark(#e63312, #ff5a3c);
+    /* Functional accent (focus rings, dirty text): deepened in light so 13px
+       text passes AA on paper (5.1:1), brightened in dark for contrast on
+       near-black surfaces (5.8:1). */
+    --accent: light-dark(#d42a0c, #ff5a3c);
     /* Owned-chip edge: dark hairline on light paper, light hairline on dark
        paper, so near-paper pigments keep a visible boundary. */
     --chip-edge: light-dark(rgba(0, 0, 0, 0.12), rgba(255, 255, 255, 0.16));
@@ -201,7 +204,6 @@
     gap: var(--s1);
     font: 600 13px/1.2 var(--sans);
     color: var(--accent);
-    text-align: right;
   }
   .dirty::before {
     content: "";
