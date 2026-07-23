@@ -414,3 +414,32 @@ Expected: non-zero. Also: `curl -sL https://danutabloom.github.io/markers/lineup
 - [ ] **Step 3: Final report to Philip**
 
 Must include: live URL, the list of colors with unverified (`null`) numbers, which design-skill guidelines were applied in Tasks 4 and 7, and how to use both update routes.
+
+---
+
+## Round 2 (user feedback 2026-07-23)
+
+Decisions: legacy-map is NOT a verification source (it partly derives from PoscART — circular); hex source stays posca.com (single consistent origin, complete coverage); color names are display-normalized to consistent Title Case in the data layer (explicit user request; e.g. "CACAO BROWN" → "Cacao Brown", "YELLOW FLUO" → "Yellow Fluo"); progress-fill bar removed; UI copy English; label toggle must not reshape the grid; dark mode added (system preference + persisted manual override).
+
+### Task R1: Independent number re-verification + name normalization
+
+**Files:** Modify `scripts/build-lineup.py`, `scripts/number-map.json`, regenerate `lineup.js`; save two independent source snapshots under `scripts/` (replacing trust in legacy-map.json and the PoscART-derived pair for verification; keep old snapshots for history). Update `scripts/check-lineup.py` only if the null-count assertion text needs it.
+- A number is verified only when TWO sources independent of each other and of the old page agree (official uni-ball/Posca retail pages, retailer colour charts). Disagreement or single-source → null. No guessing; provenance of every accepted number listed in the report.
+- Duplicate-name entries (Brown 2x in 3M): may only be renamed/numbered if a source explicitly pairs the specific entry (by number+name listing for that size). Otherwise stays name-verbatim with number null.
+- Name normalization: Title Case applied in build-lineup.py with a documented function; keys follow normalized names (inventory is empty, no migration).
+- check-sources.py: drop the legacy-map assertions' role as verification (file stays as historical snapshot).
+
+### Task R2: UI round — English, stable toggle, dark mode, remove progress bar
+
+**Files:** Modify `index.html` only.
+- All UI copy English ("Posca inventory", "Copy inventory.js", "unsaved changes", "Colour/Number/Name" or "Color/Number/Name" — pick one spelling consistently: use US English "Color").
+- Label modes share identical grid geometry: same column count/cell size in all three modes; label area is fixed-height reserved space (empty in color mode), nothing reflows on toggle.
+- Dark mode: CSS custom properties per theme; default follows prefers-color-scheme; small persisted manual override (localStorage), swatch perception protected (neutral surfaces, borders re-tuned for dark).
+- Remove `.size-fill` progress bar (element + CSS).
+- MANDATORY skill gate as in Task 4: load frontend-design:frontend-design AND ui-ux-pro-max via Skill tool before code; report names applied guidelines.
+- Verify with playwright-cli: mode toggle causes zero layout shift (compare a swatch's boundingClientRect across all three modes), dark/light both render, regression set from Tasks 4/6 passes.
+
+### Task R3: Polish + deploy
+
+- Polish pass on the real page with impeccable + design-taste-frontend (both themes, 390x844), regression re-run, commit.
+- Push; verify live (index + lineup.js + inventory.js 200, spot-check dark mode markup present).
