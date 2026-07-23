@@ -1,2535 +1,397 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="nl">
 <head>
 <meta charset="UTF-8">
-<title>Markers</title>
-<script>
-  // Set theme before any rendering to prevent flash.
-  // Order: stored preference → system preference → light fallback.
-  (function() {
-    try {
-      var stored = localStorage.getItem('marker-theme');
-      var theme;
-      if (stored === 'light' || stored === 'dark') {
-        theme = stored;
-      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        theme = 'dark';
-      } else {
-        theme = 'light';
-      }
-      document.documentElement.setAttribute('data-theme', theme);
-    } catch(e) {
-      document.documentElement.setAttribute('data-theme', 'light');
-    }
-  })();
-</script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Posca voorraad</title>
 <style>
+  /* Token system: paper-white chrome, ink text, one brand-red accent.
+     The 222 official pigment hexes are the real palette; everything else
+     stays monochrome so they render uncontaminated. */
   :root {
-    --s-1: 4px;   --s-2: 8px;   --s-3: 12px;  --s-4: 16px;
-    --s-5: 24px;  --s-6: 32px;  --s-7: 48px;  --s-8: 64px;  --s-9: 96px;
-    --r-1: 4px;   --r-2: 8px;   --r-3: 12px;  --r-4: 16px;
-    --r-5: 20px;  --r-full: 999px;
-    --fs-xs: 11px;  --fs-sm: 12px;  --fs-md: 14px;  --fs-lg: 16px;
-    --fs-xl: 20px;  --fs-2xl: 28px; --fs-3xl: 48px;
-    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-    --font-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
-    --font-serif: ui-serif, Georgia, 'Times New Roman', serif;
-    --ease: cubic-bezier(0.32, 0.72, 0, 1);
-    --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
-    --dur-fast: 0.2s;
-    --dur: 0.3s;
+    --paper: #ffffff;
+    --ink: #141414;
+    --muted: #6b6b6b;
+    --faint: #a3a3a3;
+    --hairline: #e6e6e6;
+    --wash: #f5f5f4;
+    --posca-red: #e63312;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    /* 4px spacing scale */
+    --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s6: 24px; --s8: 32px;
+    --bar-h: 112px;
   }
 
-  :root[data-theme="light"] {
-    --bg: #faf9f5;
-    --bg-elevated: #ffffff;
-    --bg-subtle: #f4f2eb;
-    --text: #141413;
-    --text-muted: #5a5854;
-    --text-soft: #8a8780;
-    --border: rgba(20, 20, 19, 0.08);
-    --border-strong: rgba(20, 20, 19, 0.16);
-    --accent: #d97757;
-    --accent-soft: rgba(217, 119, 87, 0.12);
-    --owned: #788c5d;
-    --missing: #b8642f;
-    --ink: #141413;
-    --shadow-1: 0 1px 2px rgba(20, 20, 19, 0.04), 0 8px 24px rgba(20, 20, 19, 0.04);
-    --shadow-2: 0 1px 2px rgba(20, 20, 19, 0.06), 0 12px 32px rgba(20, 20, 19, 0.06);
-    --toolbar-bg: rgba(250, 249, 245, 0.72);
-  }
+  * { box-sizing: border-box; }
 
-  :root[data-theme="dark"] {
-    --bg: #141413;
-    --bg-elevated: #1c1c1a;
-    --bg-subtle: #232321;
-    --text: #faf9f5;
-    --text-muted: #b0aea5;
-    --text-soft: #7a7872;
-    --border: rgba(250, 249, 245, 0.08);
-    --border-strong: rgba(250, 249, 245, 0.18);
-    --accent: #e89074;
-    --accent-soft: rgba(232, 144, 116, 0.16);
-    --owned: #9eb47a;
-    --missing: #d29260;
-    --ink: #faf9f5;
-    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.3);
-    --shadow-2: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 32px rgba(0, 0, 0, 0.4);
-    --toolbar-bg: rgba(20, 20, 19, 0.72);
+  html {
+    scroll-behavior: smooth;
   }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html { scroll-behavior: auto; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    * { transition: none !important; }
+  }
 
   body {
-    font-family: var(--font-sans);
-    background: var(--bg);
-    color: var(--text);
-    padding: var(--s-5) var(--s-6) var(--s-8);
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
     line-height: 1.5;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
     -webkit-text-size-adjust: 100%;
-    overscroll-behavior-y: none;
-    transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
   }
 
-  .container { max-width: 1200px; margin: 0 auto; }
-
-  /* ═══════ Sticky toolbar ═══════ */
-  .toolbar {
+  /* Sticky bar: title + label-mode toggle, then size jump pills */
+  .bar {
     position: sticky;
     top: 0;
-    z-index: 50;
-    margin: 0 calc(-1 * var(--s-6)) var(--s-6);
-    padding: var(--s-2) var(--s-6);
-    background: var(--toolbar-bg);
-    backdrop-filter: saturate(140%) blur(12px);
-    -webkit-backdrop-filter: saturate(140%) blur(12px);
-    border-bottom: 1px solid var(--border);
+    z-index: 10;
+    background: var(--paper);
+    border-bottom: 1px solid var(--hairline);
   }
-  /* Disable backdrop blur on mobile - it's a major perf hit on iOS */
-  @media (max-width: 700px) {
-    .toolbar {
-      backdrop-filter: none;
-      -webkit-backdrop-filter: none;
-      background: var(--bg);
-    }
-  }
-  .toolbar-row {
+  .bar-top {
     display: flex;
     align-items: center;
-    gap: 2px;
-    justify-content: flex-end;
+    justify-content: space-between;
+    gap: var(--s3);
+    padding: var(--s2) var(--s4) 0;
+    min-height: 52px;
   }
-  .toolbar-divider {
-    width: 1px;
-    height: 18px;
-    background: var(--border-strong);
-    margin: 0 6px;
-    flex-shrink: 0;
-  }
-
-  /* Ghost icon-button */
-  /* ═══════ Unified pill primitive ═══════ */
-  /* Single visual language for all toggle/filter buttons: pill-shaped,
-     32px tall, transparent rest, ink-filled when pressed/active. The
-     toolbar uses the icon variant (square 32x32); filter rows use the
-     text variant. Brand-tab segmented control stays distinct because
-     it's primary navigation, not a filter. */
-  .ghost-btn {
-    width: 32px;
-    height: 32px;
-    background: transparent;
-    color: var(--text-muted);
-    border: 1px solid transparent;
-    border-radius: var(--r-full);
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.15s var(--ease), color 0.15s var(--ease), border-color 0.15s var(--ease);
-    flex-shrink: 0;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-  }
-  .ghost-btn svg { width: 16px; height: 16px; }
-  .ghost-btn:hover {
-    background: var(--bg-subtle);
-    color: var(--text);
-  }
-  .ghost-btn:focus-visible {
-    outline: 2px solid var(--ink);
-    outline-offset: 2px;
-  }
-  .ghost-btn[aria-pressed="true"] {
-    background: var(--ink);
-    color: var(--surface);
-    border-color: var(--ink);
-  }
-  :root[data-theme="dark"] .ghost-btn[aria-pressed="true"] {
-    background: var(--text);
-    color: var(--bg);
-    border-color: var(--text);
-  }
-  .ghost-btn[aria-pressed="true"]:hover { filter: brightness(1.05); }
-  .visually-hidden {
-    position: absolute;
-    width: 1px; height: 1px;
-    padding: 0; margin: -1px;
-    overflow: hidden; clip: rect(0,0,0,0);
-    white-space: nowrap; border: 0;
-  }
-  .skip-link {
-    position: absolute;
-    top: var(--s-3); left: var(--s-3);
-    padding: var(--s-2) var(--s-4);
-    background: var(--bg-elevated);
-    color: var(--text);
-    border: 1px solid var(--border-strong);
-    border-radius: var(--r-2);
-    text-decoration: none;
-    font-size: var(--fs-sm);
-    font-weight: 500;
-    transform: translateY(-200%);
-    transition: transform var(--dur-fast) var(--ease);
-    z-index: 100;
-  }
-  .skip-link:focus { transform: translateY(0); outline: 2px solid var(--accent); }
-
-  /* Search wrap: button + expanding field */
-  .search-wrap {
-    position: relative;
-    display: flex;
-    align-items: center;
-    margin-right: auto;
-  }
-  .search-wrap[data-open="true"] #searchToggle { display: none; }
-  .search-wrap .search-field {
-    display: none;
-    position: relative;
-    width: 320px;
-  }
-  .search-wrap[data-open="true"] .search-field { display: block; }
-  .search-field input {
-    width: 100%;
-    background: var(--bg-elevated);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: var(--r-full);
-    padding: 8px 36px 8px 38px;
-    font-family: var(--font-sans);
-    font-size: var(--fs-sm);
-    transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
-    height: 36px;
-  }
-  .search-field input:focus {
-    outline: none;
-    border-color: var(--border-strong);
-    box-shadow: 0 0 0 3px var(--accent-soft);
-  }
-  .search-field input::placeholder { color: var(--text-soft); }
-  .search-field input::-webkit-search-cancel-button { -webkit-appearance: none; }
-  .search-field .search-icon {
-    position: absolute;
-    left: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 16px;
-    height: 16px;
-    color: var(--text-soft);
-    pointer-events: none;
-  }
-  .search-field .clear-search {
-    position: absolute;
-    right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: var(--bg-subtle);
-    border: none;
-    color: var(--text-muted);
-    cursor: pointer;
-    width: 22px;
-    height: 22px;
-    border-radius: var(--r-full);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
-  }
-  .search-field .clear-search:hover {
-    background: var(--border-strong);
-    color: var(--text);
-  }
-
-  /* ═══════ Filter dimming (compositor-only, no filter property) ═══════ */
-  /* Dim non-matching swatches but keep them clickable so users can toggle
-     ownership in any view without switching back to "All" first. */
-  body[data-filter="owned"] .mini.missing,
-  body[data-filter="owned"] .swatch.missing,
-  body[data-filter="missing"] .mini.owned,
-  body[data-filter="missing"] .swatch.owned {
-    opacity: 0.32;
-  }
-  :root[data-theme="dark"] body[data-filter="owned"] .mini.missing,
-  :root[data-theme="dark"] body[data-filter="owned"] .swatch.missing,
-  :root[data-theme="dark"] body[data-filter="missing"] .mini.owned,
-  :root[data-theme="dark"] body[data-filter="missing"] .swatch.owned {
-    opacity: 0.36;
-  }
-
-  /* ═══════ Search highlighting (avoid filter property) ═══════ */
-  body.searching .mini:not(.match),
-  body.searching .swatch:not(.match) {
-    opacity: 0.28;
-  }
-  body.searching .mini.match,
-  body.searching .swatch.match {
-    box-shadow: 0 0 0 2px var(--accent);
-    z-index: 4;
-  }
-
-  /* ═══════ Carousel ═══════ */
-  .carousel-section {
-    margin: 0 0 var(--s-7);
-    overflow: hidden;
-  }
-  .carousel-header {
-    display: flex;
-    align-items: center;
-    gap: var(--s-4);
-    margin-bottom: var(--s-5);
-  }
-  .arrow-btn {
-    flex-shrink: 0;
-    width: 36px;
-    height: 36px;
-    border-radius: var(--r-full);
-    background: var(--bg-elevated);
-    color: var(--text);
-    border: 1px solid var(--border);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.2s var(--ease), border-color var(--dur) var(--ease), background var(--dur) var(--ease);
-  }
-  .arrow-btn svg { width: 16px; height: 16px; stroke-width: 2.25; }
-  .arrow-btn:hover {
-    border-color: var(--border-strong);
-    background: var(--bg-subtle);
-  }
-  .arrow-btn:active { transform: scale(0.92); }
-  .carousel-title {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  .carousel-title h2 {
-    font-size: var(--fs-2xl);
-    font-weight: 600;
-    letter-spacing: -0.02em;
-    line-height: 1;
-    color: var(--text);
-  }
-  .carousel-meta {
-    flex-shrink: 0;
-    font-family: var(--font-mono);
-    font-size: var(--fs-md);
-    color: var(--text-muted);
-    font-feature-settings: "tnum";
-    letter-spacing: -0.02em;
-  }
-  .carousel-meta strong {
-    color: var(--text);
-    font-weight: 600;
-  }
-  .carousel-track {
-    display: flex;
-    transition: transform 0.35s var(--ease-spring);
-  }
-  .carousel-slide {
-    flex: 0 0 100%;
-    min-width: 0;
-    padding: 4px;
-  }
-  .carousel-slide:not(.active) {
-    pointer-events: none;
-    /* Hint to browser that off-screen slides don't need painting */
-    content-visibility: auto;
-    contain-intrinsic-size: 1px 600px;
-  }
-  .carousel-slide.active { pointer-events: auto; }
-
-  /* Filter pills (in carousel header) */
-  .filter-group {
-    display: inline-flex;
-    background: var(--bg-subtle);
-    padding: 3px;
-    border-radius: var(--r-full);
-    border: 1px solid var(--border);
-    gap: 2px;
-    height: 32px;
-    flex-shrink: 0;
-  }
-  .filter-pill {
-    display: inline-flex;
-    align-items: center;
-    padding: 0 12px;
-    height: 32px;
-    background: transparent;
-    color: var(--text-muted);
-    border: 1px solid transparent;
-    border-radius: var(--r-full);
-    font-family: var(--font-sans);
-    font-size: var(--fs-sm);
-    font-weight: 500;
+  .bar h1 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
     letter-spacing: -0.01em;
-    cursor: pointer;
-    transition: background 0.15s var(--ease), color 0.15s var(--ease), border-color 0.15s var(--ease);
     white-space: nowrap;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
   }
-  .filter-pill:hover { color: var(--text); }
-  .filter-pill:focus-visible {
-    outline: 2px solid var(--ink);
-    outline-offset: 2px;
+  .bar h1::before {
+    content: "";
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--posca-red);
+    margin-right: var(--s2);
   }
-  /* Brand bar — primary navigation, lives in its own band above the toolbar.
-     Apple-style segmented control: pill container, active segment fills with
-     elevated bg and gains weight; inactive is muted. No scale transforms. */
-  .brand-bar {
+
+  .mode {
     display: flex;
-    justify-content: center;
-    padding: 0;
-    margin: 0 0 var(--s-5);
+    gap: 2px;
+    background: var(--wash);
+    border-radius: 10px;
+    padding: 2px;
   }
-  .brand-segments {
-    display: inline-flex;
-    background: var(--bg-subtle);
-    padding: 4px;
-    border-radius: var(--r-full);
-    border: 1px solid var(--border);
-    box-shadow: inset 0 1px 2px rgba(0,0,0,0.03);
-  }
-  .brand-tab {
+  .mode button {
     appearance: none;
     border: 0;
+    margin: 0;
     background: transparent;
-    color: var(--text-muted);
-    font-family: var(--font-sans);
-    font-size: var(--fs-md);
-    font-weight: 500;
-    letter-spacing: -0.01em;
-    padding: 0 28px;
-    height: 36px;
-    min-width: 110px;
-    border-radius: var(--r-full);
+    color: var(--muted);
+    font: 600 13px/1 var(--sans);
+    padding: 0 var(--s3);
+    min-height: 40px;
+    min-width: 44px;
+    border-radius: 8px;
     cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-    transition:
-      background 0.25s var(--ease),
-      color 0.25s var(--ease),
-      box-shadow 0.25s var(--ease);
+    transition: background-color 150ms, color 150ms;
   }
-  .brand-tab:hover { color: var(--text); }
-  .brand-tab.active {
-    background: var(--bg-elevated);
-    color: var(--text);
-    font-weight: 600;
-    box-shadow: 0 1px 3px rgba(20, 20, 19, 0.08), 0 1px 0 rgba(20, 20, 19, 0.02);
+  .mode button[aria-pressed="true"] {
+    background: var(--ink);
+    color: var(--paper);
   }
-  :root[data-theme="dark"] .brand-tab.active {
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
-  }
-  .brand-tab:focus-visible {
-    outline: 2px solid var(--accent);
+  .mode button:focus-visible,
+  .sizes a:focus-visible {
+    outline: 2px solid var(--posca-red);
     outline-offset: 2px;
   }
-  .filter-pill.active {
-    background: var(--ink);
-    color: var(--surface);
-    border-color: var(--ink);
-    font-weight: 600;
-  }
-  :root[data-theme="dark"] .filter-pill.active {
-    background: var(--text);
-    color: var(--bg);
-    border-color: var(--text);
-  }
-  .filter-pill.active:hover { filter: brightness(1.05); }
 
-  /* Family navigation chips */
-  .family-nav {
+  .sizes {
     display: flex;
-    align-items: center;
-    gap: 2px;
+    gap: var(--s2);
+    padding: var(--s2) var(--s4) var(--s2);
     overflow-x: auto;
-    overflow-y: hidden;
-    scrollbar-width: none;
-    margin: 0 calc(-1 * var(--s-6)) var(--s-4);
-    padding: 0 var(--s-6) var(--s-3);
-    border-bottom: 1px solid var(--border);
     -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
   }
-  .family-nav::-webkit-scrollbar { display: none; }
-  .chip {
-    flex-shrink: 0;
-    background: transparent;
-    border: none;
-    color: var(--text-muted);
-    padding: 0 10px;
-    height: 28px;
-    border-radius: 7px;
-    font-family: var(--font-mono);
-    font-size: var(--fs-xs);
-    font-weight: 500;
-    cursor: pointer;
-    transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
-    letter-spacing: -0.02em;
+  .sizes::-webkit-scrollbar { display: none; }
+  .sizes a {
+    flex: 0 0 auto;
     display: inline-flex;
     align-items: center;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
+    min-height: 44px;
+    padding: 0 var(--s3);
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    color: var(--ink);
+    font: 600 13px/1 var(--mono);
+    text-decoration: none;
+    transition: border-color 150ms, background-color 150ms;
   }
-  .chip:hover {
-    background: var(--bg-subtle);
-    color: var(--text);
-  }
-  .chip.active {
-    background: var(--ink);
-    color: var(--bg);
-    font-weight: 600;
-  }
-  .chip-divider {
-    flex-shrink: 0;
-    width: 1px;
-    height: 16px;
-    background: var(--border-strong);
-    margin: 0 6px;
+  .sizes a:active { background: var(--wash); }
+
+  main {
+    padding: 0 var(--s4) var(--s8);
+    max-width: 720px;
+    margin: 0 auto;
   }
 
-  /* ═══════ Spectrum strip ═══════ */
-  .spectrum-strip {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
-    gap: 3px;
+  /* Size sections: oversized catalog code as scroll anchor */
+  section.size {
+    padding-top: var(--s6);
+    scroll-margin-top: var(--bar-h);
   }
-  .mini {
-    aspect-ratio: 1 / 1;
-    border-radius: 5px;
-    position: relative;
-    cursor: pointer;
+  section.size + section.size {
+    border-top: 1px solid var(--hairline);
+    margin-top: var(--s6);
+  }
+  .size-head {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: var(--font-sans);
-    font-size: 10px;
-    font-weight: 600;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--s3);
+  }
+  .size-code {
+    margin: 0;
+    font: 800 30px/1.1 var(--mono);
     letter-spacing: -0.02em;
-    user-select: none;
-    -webkit-user-select: none;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-    /* 5-point polygon at the top-right corner so clip-path can animate
-       into the .owned notch without a geometric jump on toggle. */
-    clip-path: polygon(0 0, 100% 0, 100% 0, 100% 100%, 0 100%);
-    /* Tactile feel via shadow + brightness, never via scale — scale jumps
-       cause layout shift and break the Apple-like "stable rest" feeling. */
-    transition:
-      clip-path 0.35s var(--ease-spring),
-      box-shadow 0.25s var(--ease),
-      filter 0.18s var(--ease),
-      opacity 0.2s var(--ease);
-    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04);
   }
-  @media (hover: hover) {
-    .mini:hover {
-      z-index: 5;
-      box-shadow: 0 6px 18px rgba(20, 20, 19, 0.18), inset 0 0 0 1px rgba(0,0,0,0.10);
-      filter: brightness(1.04);
-    }
-    :root[data-theme="dark"] .mini:hover {
-      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255,255,255,0.10);
-    }
-    .mini:hover .mini-label { opacity: 1; }
-  }
-  /* Press: darken slightly and sink the shadow inward — the tile feels
-     pushed in, like a real button. No transform, no jump. */
-  .mini:active {
-    filter: brightness(0.93);
-    box-shadow: inset 0 2px 6px rgba(0,0,0,0.18), inset 0 0 0 1px rgba(0,0,0,0.10);
-    transition: filter 0.08s var(--ease), box-shadow 0.08s var(--ease);
-  }
-  .mini:focus-visible {
-    outline: 2px solid var(--ink);
-    outline-offset: 3px;
-    z-index: 6;
-  }
-  .mini.owned {
-    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
-  }
-  .mini.owned::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06);
-    pointer-events: none;
-  }
-  .mini-label {
-    line-height: 1;
-    text-shadow: 0 1px 1px rgba(0,0,0,0.25);
-    opacity: 1;
-    transition: opacity var(--dur) var(--ease);
-  }
-  body.hide-codes .mini-label { opacity: 0; }
-
-  /* ═══════ Posca per-marker mini (one tile per color × nib) ═══════ */
-  /* Each tile = one physical marker. Sized to stay touch-friendly (≥44px)
-     while keeping density. Nib label primary, color code secondary;
-     either or both can be hidden via the toolbar toggles. */
-  body[data-brand="posca"] .spectrum-strip {
-    grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
-    gap: 3px;
-  }
-  body[data-brand="posca"] .mini {
-    flex-direction: column;
-    gap: 1px;
-    padding: 3px 2px;
-    font-family: var(--font-mono);
-  }
-  .mini-nib {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    line-height: 1;
-    text-shadow: 0 1px 1px rgba(0,0,0,0.28);
-    transition: opacity var(--dur) var(--ease);
-  }
-  body[data-brand="posca"] .mini-label {
-    font-size: 8px;
-    font-weight: 500;
-    opacity: 0.82;
-  }
-  /* Higher specificity needed — the brand-scoped rule above shares
-     specificity with body.hide-codes .mini-label and would win on order. */
-  body[data-brand="posca"].hide-codes .mini-label { opacity: 0; }
-  /* Nib-label visibility toggle (Posca only — Copic minis have no nib el). */
-  body.hide-nibs .mini-nib { opacity: 0; }
-
-  /* ═══════ Posca-only chrome ═══════ */
-  /* Buttons + tiles that only make sense for Posca's 2D structure. CSS
-     hides them on Copic so the toolbar stays clean and the spectrum
-     never renders grouped clones. */
-  body:not([data-brand="posca"]) .posca-only { display: none !important; }
-
-  /* ═══════ Filter block — single home for all view controls ═══════ */
-  /* CSS Grid with three columns:
-       1. label  — right-aligned, max-content (sized to widest label)
-       2. pills  — flex-wrap, takes remaining space
-       3. meta   — count, only present on the View row
-     `display: contents` on each row lets row children participate in the
-     parent grid, so labels stay perfectly column-aligned across rows
-     regardless of label length. */
-  .filter-block {
-    display: grid;
-    grid-template-columns: max-content 1fr auto;
-    column-gap: 16px;
-    row-gap: 10px;
-    align-items: center;
-    padding: 14px 4px 18px;
-    margin: 0 0 14px;
-    border-bottom: 1px solid var(--border);
-  }
-  .filter-block:empty { display: none; }
-  .filter-row {
-    display: contents;
-  }
-  .filter-row-label {
-    grid-column: 1;
-    text-align: right;
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
+  .size-count {
+    font: 500 14px/1.2 var(--mono);
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
     white-space: nowrap;
-    line-height: 1;
   }
-  .filter-row-pills {
-    grid-column: 2;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    align-items: center;
-  }
-  .filter-row-pills.span-meta { grid-column: 2 / 4; }
-  .filter-row-meta {
-    grid-column: 3;
-    text-align: right;
-    font-family: var(--font-mono);
+  .size-tip {
+    margin: var(--s1) 0 0;
     font-size: 13px;
-    color: var(--text-muted);
-    font-feature-settings: "tnum";
-    letter-spacing: -0.02em;
-    white-space: nowrap;
-    font-weight: 500;
+    color: var(--muted);
   }
-  .filter-row-meta strong {
-    color: var(--text);
-    font-weight: 600;
+  .size-fill {
+    height: 3px;
+    background: var(--wash);
+    border-radius: 2px;
+    margin-top: var(--s2);
+    overflow: hidden;
   }
-  /* Size pills get a min-width so 1M / 17K / 3ML have visual rhythm. */
-  .filter-row-pills .size-pill[data-nib] { min-width: 44px; }
-  /* "All" pill — same primitive but visually demoted with a subtle right
-     margin so it reads as a row-level affordance rather than another
-     member pill. Pressed-state still inverts when every sibling is on. */
-  .filter-row-pills .size-pill.all-pill {
-    margin-right: 8px;
-    font-family: var(--font-sans);
-    letter-spacing: -0.01em;
-  }
-  .size-pill {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-family: var(--font-mono);
-    font-size: 11px;
-    font-weight: 600;
-    padding: 0 12px;
-    height: 32px;
-    border: 1px solid var(--border);
-    border-radius: var(--r-full);
-    background: transparent;
-    color: var(--text-muted);
-    cursor: pointer;
-    letter-spacing: -0.01em;
-    white-space: nowrap;
-    transition: background 0.15s var(--ease), color 0.15s var(--ease), border-color 0.15s var(--ease), filter 0.15s var(--ease);
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-  }
-  .size-pill:hover { color: var(--text); }
-  .size-pill[aria-pressed="true"] {
+  .size-fill i {
+    display: block;
+    height: 100%;
     background: var(--ink);
-    color: var(--surface);
-    border-color: var(--ink);
+    border-radius: 2px;
   }
-  :root[data-theme="dark"] .size-pill[aria-pressed="true"] {
-    background: var(--text);
-    color: var(--bg);
-    border-color: var(--text);
-  }
-  .size-pill[aria-pressed="true"]:hover { filter: brightness(1.05); }
-  .size-pill:focus-visible {
-    outline: 2px solid var(--ink);
-    outline-offset: 2px;
-  }
-  body[data-brand="posca"].group-mode #sizeFilter { display: none; }
 
-  /* Color/family filter — hides marker tiles AND grouped clones whose
-     data-family matches an unpressed pill. Posca uses category names
-     (Standard/Pastel/...), Copic uses family codes (Y/YG/G/...). One
-     selector list covers both since the body class + data-family value
-     are disjoint between brands. */
-  body.hide-cat-Standard   #spectrumStrip .mini[data-family="Standard"],
-  body.hide-cat-Pastel     #spectrumStrip .mini[data-family="Pastel"],
-  body.hide-cat-Fluo       #spectrumStrip .mini[data-family="Fluo"],
-  body.hide-cat-Metallic   #spectrumStrip .mini[data-family="Metallic"],
-  body.hide-cat-Glitter    #spectrumStrip .mini[data-family="Glitter"],
-  body.hide-cat-Y          #spectrumStrip .mini[data-family="Y"],
-  body.hide-cat-YG         #spectrumStrip .mini[data-family="YG"],
-  body.hide-cat-G          #spectrumStrip .mini[data-family="G"],
-  body.hide-cat-BG         #spectrumStrip .mini[data-family="BG"],
-  body.hide-cat-B          #spectrumStrip .mini[data-family="B"],
-  body.hide-cat-BV         #spectrumStrip .mini[data-family="BV"],
-  body.hide-cat-V          #spectrumStrip .mini[data-family="V"],
-  body.hide-cat-RV         #spectrumStrip .mini[data-family="RV"],
-  body.hide-cat-R          #spectrumStrip .mini[data-family="R"],
-  body.hide-cat-YR         #spectrumStrip .mini[data-family="YR"],
-  body.hide-cat-E          #spectrumStrip .mini[data-family="E"],
-  body.hide-cat-C          #spectrumStrip .mini[data-family="C"],
-  body.hide-cat-N          #spectrumStrip .mini[data-family="N"],
-  body.hide-cat-T          #spectrumStrip .mini[data-family="T"],
-  body.hide-cat-W          #spectrumStrip .mini[data-family="W"],
-  body.hide-cat-Achromatic #spectrumStrip .mini[data-family="Achromatic"],
-  body.hide-cat-F          #spectrumStrip .mini[data-family="F"] { display: none; }
-
-  /* Single-view layout: both brands now use the filter-block above the
-     spectrum, so the carousel header (arrows, title, status pills, meta
-     count) and family-chips nav are redundant. Hide them entirely — the
-     spectrum slide is the whole content area for every brand. */
-  .carousel-header,
-  #familyNav { display: none; }
-
-  /* Hide marker tiles for nibs the user has unpressed. Scoped to the
-     spectrum strip so family slides stay intact (each family slide IS
-     a single nib — filtering it would empty that view). */
-  body.hide-nib-1M:not(.group-mode)  #spectrumStrip .mini:not(.grouped)[data-nib="1M"],
-  body.hide-nib-3M:not(.group-mode)  #spectrumStrip .mini:not(.grouped)[data-nib="3M"],
-  body.hide-nib-5M:not(.group-mode)  #spectrumStrip .mini:not(.grouped)[data-nib="5M"],
-  body.hide-nib-7M:not(.group-mode)  #spectrumStrip .mini:not(.grouped)[data-nib="7M"],
-  body.hide-nib-8K:not(.group-mode)  #spectrumStrip .mini:not(.grouped)[data-nib="8K"],
-  body.hide-nib-17K:not(.group-mode) #spectrumStrip .mini:not(.grouped)[data-nib="17K"],
-  body.hide-nib-3ML:not(.group-mode) #spectrumStrip .mini:not(.grouped)[data-nib="3ML"] { display: none; }
-
-  /* ═══════ Posca grouped tiles (Group toggle) ═══════ */
-  /* When Group is OFF (default): show 310 per-marker tiles, hide the 68
-     grouped clones. When Group is ON: invert. Each grouped tile shows the
-     color + a small "X/N" badge if user owns some-but-not-all sizes. */
-  body[data-brand="posca"]:not(.group-mode) #spectrumStrip .mini.grouped { display: none; }
-  body[data-brand="posca"].group-mode #spectrumStrip .mini:not(.grouped) { display: none; }
-
-  .mini.grouped {
-    /* Slightly bigger labels in group mode — only one label per tile so
-       there's room. Code is the primary affordance here. */
-    font-size: 10px;
-  }
-  body[data-brand="posca"] .mini.grouped .mini-label {
-    font-size: 10px;
+  .cat-label {
+    margin: var(--s4) 0 var(--s2);
+    font-size: 12px;
     font-weight: 600;
-    opacity: 1;
-  }
-  body[data-brand="posca"].hide-codes .mini.grouped .mini-label { opacity: 0; }
-  /* Partial-state badge — only renders when user owns some but not all
-     nibs of a color. Sits in the top-left corner so it doesn't collide
-     with the .owned notch on the top-right. */
-  .mini.grouped[data-partial="true"]::before {
-    content: attr(data-owned-count) "/" attr(data-nib-count);
-    position: absolute;
-    top: 3px;
-    left: 3px;
-    font-size: 8px;
-    font-family: var(--font-mono);
-    font-weight: 600;
-    line-height: 1;
-    padding: 2px 4px;
-    border-radius: 4px;
-    background: rgba(0, 0, 0, 0.62);
-    color: rgba(255, 255, 255, 0.96);
-    z-index: 2;
-    pointer-events: none;
-    letter-spacing: -0.02em;
+    color: var(--muted);
   }
 
-  /* ═══════ Family grid (swatches) ═══════ */
-  .family-slide { padding: 4px; }
+  /* Swatch grid: density per label mode */
   .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
     gap: 6px;
+    grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
   }
-  .swatch {
-    padding: 10px var(--s-3);
-    border-radius: 8px;
-    position: relative;
-    aspect-ratio: 1.4 / 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    cursor: pointer;
-    user-select: none;
-    -webkit-user-select: none;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-    /* 5-point polygon so the .owned corner notch animates instead of jumping */
-    clip-path: polygon(0 0, 100% 0, 100% 0, 100% 100%, 0 100%);
-    transition:
-      clip-path 0.35s var(--ease-spring),
-      box-shadow 0.25s var(--ease),
-      filter 0.18s var(--ease),
-      opacity 0.2s var(--ease);
-    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04);
+  body[data-mode="nummer"] .grid {
+    grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
   }
-  @media (hover: hover) {
-    .swatch:hover {
-      z-index: 2;
-      box-shadow: 0 10px 28px rgba(20, 20, 19, 0.18), inset 0 0 0 1px rgba(0,0,0,0.08);
-      filter: brightness(1.04);
-    }
-    :root[data-theme="dark"] .swatch:hover {
-      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255,255,255,0.08);
-    }
-  }
-  .swatch:active {
-    filter: brightness(0.93);
-    box-shadow: inset 0 2px 6px rgba(0,0,0,0.18), inset 0 0 0 1px rgba(0,0,0,0.08);
-    transition: filter 0.08s var(--ease), box-shadow 0.08s var(--ease);
-  }
-  .swatch:focus-visible {
-    outline: 2px solid var(--ink);
-    outline-offset: 3px;
-  }
-  .swatch.owned {
-    clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
-  }
-  .swatch.owned::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06);
-    pointer-events: none;
+  body[data-mode="naam"] .grid {
+    grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
   }
 
-  .swatch-code {
-    font-family: var(--font-mono);
-    font-size: var(--fs-sm);
-    font-weight: 600;
-    letter-spacing: -0.02em;
-    line-height: 1;
+  /* Swatch: owned = solid pigment chip; missing = pale wash + dashed border.
+     Dashed border is the second (non-color) channel for the missing state. */
+  .sw { min-width: 0; }
+  .chip {
+    aspect-ratio: 1;
+    border-radius: 7px;
+    background: var(--c);
+    border: 1.5px solid transparent;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
   }
-  .swatch-name {
-    font-size: 10px;
-    font-weight: 500;
-    line-height: 1.25;
-    margin-top: auto;
-    opacity: 0.85;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
+  .sw.missing .chip {
+    background: color-mix(in srgb, var(--c) 20%, #fff);
+    border: 1.5px dashed #c4c4c4;
+    box-shadow: none;
   }
 
-  /* ═══════ Empty state ═══════ */
-  .empty-state {
+  .sw-num, .sw-name {
     display: none;
-    padding: var(--s-7) var(--s-4);
+    margin-top: 3px;
     text-align: center;
-    color: var(--text-muted);
-    font-size: var(--fs-sm);
-    line-height: 1.6;
+    color: #333;
   }
-  .empty-state strong {
-    color: var(--text);
-    font-weight: 600;
-    display: block;
-    margin-bottom: 4px;
+  .sw.missing .sw-num,
+  .sw.missing .sw-name { color: var(--faint); }
+  body[data-mode="nummer"] .sw-num { display: block; }
+  body[data-mode="naam"] .sw-name { display: block; }
+  .sw-num {
+    font: 500 11px/1.2 var(--mono);
+    font-variant-numeric: tabular-nums;
   }
-  /* When everything is filtered out: hide the tile grids but keep the
-     filter rows visible so the user can still adjust pills to bring tiles
-     back. Previously the entire .carousel-track was hidden, which trapped
-     the user with no way out. */
-  body.empty-active #spectrumStrip,
-  body.empty-active .family-slide .grid { display: none; }
-  body.empty-active .empty-state { display: block; }
-
-  /* ═══════ Toast ═══════ */
-  .toast {
-    position: fixed;
-    bottom: var(--s-5);
-    left: 50%;
-    transform: translateX(-50%) translateY(20px);
-    background: var(--ink);
-    color: var(--bg);
-    padding: 10px 16px;
-    border-radius: var(--r-full);
-    font-family: var(--font-sans);
-    font-size: var(--fs-sm);
-    font-weight: 500;
-    box-shadow: var(--shadow-2);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.25s var(--ease), transform 0.25s var(--ease-spring), bottom var(--dur) var(--ease);
-    z-index: 100;
-    display: flex;
-    align-items: center;
-    gap: 10px;
+  .sw-num.num-unknown {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--faint);
+  }
+  .sw-name {
+    font-size: 10px;
+    line-height: 1.3;
     white-space: nowrap;
-    max-width: calc(100vw - 32px);
-  }
-  .toast.visible {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-  .toast .toast-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: var(--r-full);
-    background: var(--owned);
-    flex-shrink: 0;
-  }
-  .toast.removed .toast-dot { background: var(--missing); }
-  .toast .toast-text {
     overflow: hidden;
     text-overflow: ellipsis;
-  }
-  body.has-scroll-top .toast { bottom: calc(var(--s-5) + 56px); }
-
-  /* ═══════ Scroll-to-top ═══════ */
-  .scroll-top {
-    position: fixed;
-    bottom: var(--s-5);
-    right: var(--s-5);
-    width: 40px;
-    height: 40px;
-    border-radius: var(--r-full);
-    background: var(--bg-elevated);
-    border: 1px solid var(--border);
-    color: var(--text);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: var(--shadow-1);
-    opacity: 0;
-    transform: translateY(20px);
-    pointer-events: none;
-    transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease-spring);
-    z-index: 90;
-  }
-  .scroll-top.visible {
-    opacity: 1;
-    transform: translateY(0);
-    pointer-events: auto;
-  }
-  .scroll-top:hover {
-    border-color: var(--border-strong);
-    transform: translateY(-2px);
-  }
-  .scroll-top svg { width: 16px; height: 16px; stroke-width: 2.25; }
-
-  /* ═══════ Footer ═══════ */
-  footer {
-    margin-top: var(--s-7);
-    padding-top: var(--s-5);
-    border-top: 1px solid var(--border);
-    font-family: var(--font-serif);
-    font-style: italic;
-    font-size: var(--fs-xs);
-    color: var(--text-muted);
-    line-height: 1.6;
-    text-align: center;
-  }
-
-  @media (max-width: 700px) {
-    body { padding: var(--s-4) var(--s-4) var(--s-7); }
-    .toolbar {
-      margin: 0 calc(-1 * var(--s-4)) var(--s-5);
-      padding: var(--s-2) var(--s-4);
-    }
-    .search-wrap[data-open="true"] {
-      position: absolute;
-      left: var(--s-4);
-      right: var(--s-4);
-      background: var(--toolbar-bg);
-    }
-    .search-wrap[data-open="true"] .search-field { width: 100%; }
-    .family-nav {
-      margin: 0 calc(-1 * var(--s-4)) var(--s-4);
-      padding: 0 var(--s-4) var(--s-3);
-    }
-    .carousel-header {
-      flex-wrap: wrap;
-      row-gap: var(--s-3);
-    }
-    .filter-group {
-      order: 10;
-      flex: 1 1 100%;
-      justify-content: center;
-    }
-    .carousel-meta { font-size: var(--fs-sm); }
-    .carousel-title h2 { font-size: var(--fs-xl); }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-      transition-duration: 0.01ms !important;
-      animation-duration: 0.01ms !important;
-    }
-  }
-  @media print {
-    body { padding: var(--s-4); background: white; color: black; }
-    .toolbar, .scroll-top, .toast { display: none; }
   }
 </style>
 </head>
-<body>
-<a class="skip-link" href="#main-content">Skip to colors</a>
-<div class="container">
-
-<nav class="toolbar" aria-label="Controls">
-  <div class="toolbar-row">
-    <div class="search-wrap" id="searchWrap">
-      <button class="ghost-btn" id="searchToggle" aria-label="Search" title="Search (/)" aria-expanded="false">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <div class="search-field">
-        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="search" id="searchInput" placeholder="Search…" aria-label="Search colors" autocomplete="off" spellcheck="false">
-        <button class="clear-search" id="clearSearch" aria-label="Close search" tabindex="-1">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
+<body data-mode="kleur">
+  <header class="bar">
+    <div class="bar-top">
+      <h1>Posca voorraad</h1>
+      <div class="mode" role="group" aria-label="Labelweergave">
+        <button type="button" data-mode-btn="kleur" aria-pressed="true">Kleur</button>
+        <button type="button" data-mode-btn="nummer" aria-pressed="false">Nummer</button>
+        <button type="button" data-mode-btn="naam" aria-pressed="false">Naam</button>
       </div>
     </div>
-    <button class="ghost-btn" id="codeToggle" aria-label="Hide codes" title="Hide codes (c)" aria-pressed="false">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-    </button>
-    <button class="ghost-btn posca-only" id="nibToggle" aria-label="Hide nib labels" title="Hide nib labels (n)" aria-pressed="false">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
-    </button>
-    <button class="ghost-btn posca-only" id="groupToggle" aria-label="Group sizes per color" title="Group sizes per color (g)" aria-pressed="false">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect x="3" y="3" width="13" height="13" rx="2"/><rect x="8" y="8" width="13" height="13" rx="2"/></svg>
-    </button>
-    <span class="toolbar-divider" aria-hidden="true"></span>
-    <button class="ghost-btn" id="importBtn" aria-label="Import" title="Import">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-    </button>
-    <button class="ghost-btn" id="exportBtn" aria-label="Export" title="Export">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-    </button>
-    <button class="ghost-btn" id="resetBtn" aria-label="Clear" title="Clear">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-    </button>
-    <button class="ghost-btn" id="themeToggle" aria-label="Theme" title="Theme">
-      <span id="themeIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>
-      <span id="themeLabel" class="visually-hidden">Dark</span>
-    </button>
-    <input type="file" id="importFile" accept=".txt,.json" aria-label="Import inventory file" style="display: none;">
-  </div>
-</nav>
+    <nav class="sizes" aria-label="Ga naar maat"></nav>
+  </header>
 
-<header class="brand-bar" role="banner">
-  <div class="brand-segments" role="group" aria-label="Marker brand">
-    <button class="brand-tab" data-brand="copic">Copic</button>
-    <button class="brand-tab" data-brand="posca">Posca</button>
-  </div>
-</header>
+  <main id="app"></main>
 
-<main id="main-content">
-<h1 class="visually-hidden">Markers</h1>
+  <script src="lineup.js"></script>
+  <script src="inventory.js"></script>
+  <script>
+    "use strict";
 
-<section class="filter-block" id="filterBlock" aria-label="View controls"></section>
+    var CATEGORY_ORDER = ["Standard", "Pastel", "Fluo", "Metallic", "Glitter"];
+    var MODES = ["kleur", "nummer", "naam"];
+    var MODE_KEY = "posca-label-mode";
 
-<section class="carousel-section" id="carousel-section">
-  <div class="carousel-header">
-    <button class="arrow-btn" id="prevFamily" aria-label="Previous">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-    </button>
-    <div class="carousel-title">
-      <h2 id="carouselTitle">All</h2>
-    </div>
-    <div class="filter-group" role="group" aria-label="Filter">
-      <button class="filter-pill active" data-filter="all">All</button>
-      <button class="filter-pill" data-filter="owned">Owned</button>
-      <button class="filter-pill" data-filter="missing">Missing</button>
-    </div>
-    <div class="carousel-meta" id="carouselMeta">0 / 358</div>
-    <button class="arrow-btn" id="nextFamily" aria-label="Next">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-    </button>
-  </div>
-  <div class="family-nav" id="familyNav" aria-label="Jump to family"></div>
-  <div class="carousel-track" id="carouselTrack">
-    <div class="carousel-slide" id="spectrum" data-family="spectrum" data-family-name="All">
-      <div class="spectrum-strip" id="spectrumStrip"></div>
-    </div>
-  </div>
-  <div class="empty-state" id="emptyState">
-    <strong>Nothing to show</strong>
-    <span id="emptyStateText">No colors match your filter.</span>
-  </div>
-</section>
-
-</main>
-
-<footer>
-  Hex values are approximations from public Copic references and will differ on paper versus screen.
-</footer>
-
-</div>
-
-<div class="toast" id="toast" role="status" aria-live="polite">
-  <span class="toast-dot"></span>
-  <span class="toast-text"></span>
-</div>
-
-<button class="scroll-top" id="scrollTop" aria-label="Scroll to top">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
-</button>
-
-<script>
-  const COPIC_FAMILIES = [
-    { code: 'Y',  name: 'Yellow' },
-    { code: 'YG', name: 'Yellow Green' },
-    { code: 'G',  name: 'Green' },
-    { code: 'BG', name: 'Blue Green' },
-    { code: 'B',  name: 'Blue' },
-    { code: 'BV', name: 'Blue Violet' },
-    { code: 'V',  name: 'Violet' },
-    { code: 'RV', name: 'Red Violet' },
-    { code: 'R',  name: 'Red' },
-    { code: 'YR', name: 'Yellow Red / Orange' },
-    { code: 'E',  name: 'Earth / Skin / Brown' },
-    { code: 'C',  name: 'Cool Gray' },
-    { code: 'N',  name: 'Neutral Gray' },
-    { code: 'T',  name: 'Toner Gray' },
-    { code: 'W',  name: 'Warm Gray' },
-    { code: 'Achromatic', name: 'Blender / Black', chipLabel: '0/100' },
-    { code: 'F',  name: 'Fluorescent' }
-  ];
-
-  const COPIC_COLORS = [
-    ['Y','Y0000','Yellow Fluorite','#FFFEF7'],['Y','Y000','Pale Lemon','#FFFCE5'],['Y','Y00','Barium Yellow','#FFFBCC'],
-    ['Y','Y02','Canary Yellow','#FFF59C'],['Y','Y04','Acacia','#FFF06C'],['Y','Y06','Yellow','#FFE651'],
-    ['Y','Y08','Acid Yellow','#FFE838'],['Y','Y11','Pale Yellow','#FFFCD1'],['Y','Y13','Lemon Yellow','#FEF4A0'],
-    ['Y','Y15','Cadmium Yellow','#FEEB6B'],['Y','Y17','Golden Yellow','#FFE02B'],['Y','Y18','Lightning Yellow','#FFEF47'],
-    ['Y','Y19','Napoli Yellow','#FFD836'],['Y','Y21','Buttercup Yellow','#FCE8A8'],['Y','Y23','Yellowish Beige','#F8E4B1'],
-    ['Y','Y26','Mustard','#EFC95C'],['Y','Y28','Lionet Gold','#C69C4E'],['Y','Y32','Cashmere','#F5DDB5'],
-    ['Y','Y35','Maize','#F6CE6D'],['Y','Y38','Honey','#E8B962'],
-    ['YG','YG0000','Lily White','#F4F8E6'],['YG','YG00','Mimosa Yellow','#EDF0B0'],['YG','YG01','Green Bice','#E6F0B2'],
-    ['YG','YG03','Yellow Green','#DFEB9B'],['YG','YG05','Salad','#D1E48B'],['YG','YG06','Yellowish Green','#C1D879'],
-    ['YG','YG07','Acid Green','#B9D86A'],['YG','YG09','Lettuce Green','#B5D35B'],['YG','YG11','Mignonette','#E2EBAB'],
-    ['YG','YG13','Chartreuse','#DAE87F'],['YG','YG17','Grass Green','#9FC13F'],['YG','YG21','Anise','#FBF8C2'],
-    ['YG','YG23','New Leaf','#E5E88A'],['YG','YG25','Celadon Green','#C7D874'],['YG','YG41','Pale Cobalt Green','#D8E8C8'],
-    ['YG','YG45','Cobalt Green','#B1CE9E'],['YG','YG61','Pale Moss','#C6D4A4'],['YG','YG63','Pea Green','#B8C988'],
-    ['YG','YG67','Moss','#86A96A'],['YG','YG91','Putty','#D4D7A8'],['YG','YG93','Grayish Yellow','#D0CE91'],
-    ['YG','YG95','Pale Olive','#BEBA7E'],['YG','YG97','Spanish Olive','#A2A060'],['YG','YG99','Marine Green','#696E3E'],
-    ['G','G0000','Crystal Opal','#F6FAF6'],['G','G000','Pale Green','#E5F3E0'],['G','G00','Jade Green','#C8E5C5'],
-    ['G','G02','Spectrum Green','#A9D8AA'],['G','G03','Meadow Green','#BEDC98'],['G','G05','Emerald Green','#7AC894'],
-    ['G','G07','Nile Green','#62B97A'],['G','G09','Veronese Green','#45A964'],['G','G12','Sea Green','#BBE1C5'],
-    ['G','G14','Apple Green','#88D29F'],['G','G16','Malachite','#4CAC7B'],['G','G17','Forest Green','#2E8F5C'],
-    ['G','G19','Bright Parrot Green','#2DA05C'],['G','G20','Wax White','#E7F0E1'],['G','G21','Lime Green','#CDE3B6'],
-    ['G','G24','Willow','#B5D5A2'],['G','G28','Ocean Green','#3B7B50'],['G','G29','Pine Tree Green','#2B6142'],
-    ['G','G40','Dim Green','#DCE7CA'],['G','G43','Pistachio','#B6D1A0'],['G','G46','Mistletoe','#6E9267'],
-    ['G','G82','Spring Dim Green','#D9E3C2'],['G','G85','Verdigris','#8FAA8A'],['G','G94','Grayish Olive','#8A9275'],
-    ['G','G99','Olive','#5A6942'],
-    ['BG','BG0000','Snow Green','#EDF6EE'],['BG','BG000','Pale Aqua','#EDF6F2'],['BG','BG01','Aqua Blue','#C7E8DE'],
-    ['BG','BG02','New Blue','#B6DFE1'],['BG','BG05','Holiday Blue','#7FCACC'],['BG','BG07','Petroleum Blue','#2FAFB2'],
-    ['BG','BG09','Blue Green','#21A8A8'],['BG','BG10','Cool Shadow','#E7F4F3'],['BG','BG11','Moon White','#D8EEE4'],
-    ['BG','BG13','Mint Green','#D0EAED'],['BG','BG15','Aqua','#9FDBD1'],['BG','BG18','Teal Blue','#3CB5BC'],
-    ['BG','BG23','Coral Sea','#B9E2DA'],['BG','BG32','Aqua Mint','#B8DFD8'],['BG','BG34','Horizon Green','#A5D7C8'],
-    ['BG','BG45','Nile Blue','#C4E3DC'],['BG','BG49','Duck Blue','#008A8E'],['BG','BG53','Ice Mint','#A8D5C8'],
-    ['BG','BG57','Jasper','#1D9393'],['BG','BG70','Ocean Mist','#D7E9E1'],['BG','BG72','Ice Ocean','#7BBABE'],
-    ['BG','BG75','Abyss Green','#4D7E7A'],['BG','BG78','Bronze','#3D6D64'],['BG','BG90','Gray Sky','#C8D4D0'],
-    ['BG','BG93','Green Gray','#A9B9B0'],['BG','BG96','Bush','#72857E'],['BG','BG99','Flagstone Blue','#39524F'],
-    ['B','B0000','Pale Celestine','#F5FBFE'],['B','B000','Pale Porcelain Blue','#E6F2FA'],['B','B00','Frost Blue','#D3EAF5'],
-    ['B','B01','Mint Blue','#C7E3F1'],['B','B02',"Robin's Egg Blue",'#A8D2EC'],['B','B04','Tahitian Blue','#84C1E6'],
-    ['B','B05','Process Blue','#4FABDB'],['B','B06','Peacock Blue','#0092CC'],['B','B12','Ice Blue','#D4EAF2'],
-    ['B','B14','Light Blue','#8AC7E3'],['B','B16','Cyanine Blue','#2388C4'],['B','B18','Lapis Lazuli','#1A5FA5'],
-    ['B','B21','Baby Blue','#C9DDEE'],['B','B23','Phthalo Blue','#7AA7D0'],['B','B24','Sky','#9AD2F2'],
-    ['B','B26','Cobalt Blue','#4A7DB5'],['B','B28','Royal Blue','#0E64B0'],['B','B29','Ultramarine','#1D3FA0'],
-    ['B','B32','Pale Blue','#D7E6EE'],['B','B34','Manganese Blue','#6EA8C9'],['B','B37','Antwerp Blue','#1F466F'],
-    ['B','B39','Prussian Blue','#2C4A8C'],['B','B41','Powder Blue','#DEE8EF'],['B','B45','Smoky Blue','#8AACBE'],
-    ['B','B52','Soft Greenish Blue','#A6BCC7'],['B','B60','Pale Blue Gray','#E3E7F5'],['B','B63','Light Hydrangea','#B6C2DC'],
-    ['B','B66','Clematis','#6E7EB1'],['B','B69','Stratospheric Blue','#3D4A89'],['B','B79','Iris','#44447A'],
-    ['B','B91','Pale Grayish Blue','#D7DDE1'],['B','B93','Light Crockery Blue','#A9BAC4'],['B','B95','Light Grayish Cobalt','#7B8FA1'],
-    ['B','B97','Night Blue','#385068'],['B','B99','Agate','#2B3B52'],
-    ['BV','BV0000','Pale Thistle','#F0ECF6'],['BV','BV000','Iridescent Mauve','#EBE4F0'],['BV','BV00','Mauve Shadow','#DCD4E7'],
-    ['BV','BV01','Viola','#C8BDDD'],['BV','BV02','Prune','#B7A8D0'],['BV','BV04','Blue Berry','#8878B6'],
-    ['BV','BV08','Blue Violet','#7267A8'],['BV','BV11','Soft Violet','#D6CCE3'],['BV','BV13','Hydrangea Blue','#A799CE'],
-    ['BV','BV17','Deep Reddish Blue','#615293'],['BV','BV20','Dull Lavender','#D0CADF'],['BV','BV23','Grayish Lavender','#C0CBE3'],
-    ['BV','BV25','Grayish Violet','#9A96B3'],['BV','BV29','Slate','#3E3D61'],['BV','BV31','Pale Lavender','#E5DFEA'],
-    ['BV','BV34','Bluebell','#9A9CC2'],
-    ['V','V0000','Rose Quartz','#F4EFF4'],['V','V000','Pale Heath','#EBE2EE'],['V','V01','Heath','#E6C8DD'],
-    ['V','V04','Lilac','#D6B0D2'],['V','V05','Marigold','#D89EC2'],['V','V06','Lavender','#B983B9'],
-    ['V','V09','Violet','#8A55A3'],['V','V12','Pale Lilac','#E3CEE2'],['V','V15','Mallow','#CAA8CF'],
-    ['V','V17','Amethyst','#8769A9'],['V','V20','Wisteria','#DED7DF'],['V','V22','Ash Lavender','#C1B8CD'],
-    ['V','V25','Pale Blackberry','#9084A2'],['V','V28','Eggplant','#5F4671'],['V','V91','Pale Grape','#E2D3D8'],
-    ['V','V93','Early Grape','#C9B0BE'],['V','V95','Light Grape','#A48294'],['V','V99','Aubergine','#483747'],
-    ['RV','RV0000','Evening Primrose','#F6EFF6'],['RV','RV000','Pale Purple','#F7E9F2'],['RV','RV00','Water Lily','#F4DEEA'],
-    ['RV','RV02','Sugared Almond Pink','#F3D0DD'],['RV','RV04','Shock Pink','#F3A3C0'],['RV','RV06','Cerise','#EA7AA5'],
-    ['RV','RV09','Fuchsia','#E24E8D'],['RV','RV10','Pale Pink','#FBE3E9'],['RV','RV11','Pink','#F9D1DE'],
-    ['RV','RV13','Tender Pink','#F9BCCC'],['RV','RV14','Begonia Pink','#F099B5'],['RV','RV17','Deep Magenta','#D95889'],
-    ['RV','RV19','Red Violet','#CF2E77'],['RV','RV21','Light Pink','#F8CCD5'],['RV','RV23','Pure Pink','#F5A5B7'],
-    ['RV','RV25','Dog Rose Flower','#EC83A3'],['RV','RV29','Crimson','#DE3A6B'],['RV','RV32','Shadow Pink','#F5C1C9'],
-    ['RV','RV34','Dark Pink','#F09AAB'],['RV','RV42','Salmon Pink','#F4ACAE'],['RV','RV52','Cotton Candy','#F5B8D3'],
-    ['RV','RV55','Hollyhock','#E376A8'],['RV','RV63','Begonia','#E49EC4'],['RV','RV66','Raspberry','#AC3770'],
-    ['RV','RV69','Peony','#8A3563'],['RV','RV91','Grayish Cherry','#DCB9C2'],['RV','RV93','Smoky Purple','#C099A5'],
-    ['RV','RV95','Baby Blossoms','#B8848D'],['RV','RV99','Argyle Purple','#5E3D4C'],
-    ['R','R0000','Pink Beryl','#FEEDE7'],['R','R000','Cherry White','#FFE7DF'],['R','R00','Pinkish White','#FEEFE7'],
-    ['R','R01','Pinkish Vanilla','#FDDDD3'],['R','R02','Flesh','#FCCBB7'],['R','R05','Salmon Red','#F4876B'],
-    ['R','R08','Vermilion','#EF553D'],['R','R11','Pale Cherry Pink','#FCE8DC'],['R','R12','Light Tea Rose','#FACDC2'],
-    ['R','R14','Light Rouge','#F2A093'],['R','R17','Lipstick Orange','#EC5E45'],['R','R20','Blush','#FBDFD8'],
-    ['R','R21','Sardonyx','#F6B9A9'],['R','R22','Light Prawn','#F5A79A'],['R','R24','Prawn','#EC7275'],
-    ['R','R27','Cadmium Red','#DE3B50'],['R','R29','Lipstick Red','#D6234C'],['R','R30','Pale Yellowish Pink','#FDE0DA'],
-    ['R','R32','Peach','#F8BEB3'],['R','R35','Coral','#ED8178'],['R','R37','Carmine','#E56B70'],
-    ['R','R39','Garnet','#C63A50'],['R','R43','Bougainvillea','#EC6F85'],['R','R46','Strong Red','#D33246'],
-    ['R','R56','Currant','#9F4A5E'],['R','R59','Cardinal','#A4313F'],['R','R81','Rose Pink','#F4D2DD'],
-    ['R','R83','Rose Mist','#EAA9BE'],['R','R85','Rose Red','#D06F8E'],['R','R89','Dark Red','#6F2335'],
-    ['YR','YR0000','Pale Chiffon','#FFF6EB'],['YR','YR000','Silk','#FDEAD6'],['YR','YR00','Powder Pink','#FDDCC4'],
-    ['YR','YR01','Peach Puff','#FCCBA4'],['YR','YR02','Light Orange','#FEC79B'],['YR','YR04','Chrome Orange','#FDB264'],
-    ['YR','YR07','Cadmium Orange','#F8924B'],['YR','YR09','Chinese Orange','#F37839'],['YR','YR12','Loquat','#FDD48C'],
-    ['YR','YR14','Caramel','#F8B372'],['YR','YR15','Pumpkin Yellow','#FBC06D'],['YR','YR16','Apricot','#F8A34E'],
-    ['YR','YR18','Sanguine','#EA6631'],['YR','YR20','Yellowish Shade','#FBE5BF'],['YR','YR21','Cream','#FDDDA7'],
-    ['YR','YR23','Yellow Ochre','#F5C781'],['YR','YR24','Pale Sepia','#E8B568'],['YR','YR27','Tuscan Orange','#D06B30'],
-    ['YR','YR30','Macadamia Nut','#FAE7CD'],['YR','YR31','Light Reddish Yellow','#F9DBA8'],['YR','YR61','Yellowish Skin Pink','#F4C9A6'],
-    ['YR','YR65','Atoll','#EE9968'],['YR','YR68','Orange','#EB6A31'],['YR','YR82','Mellow Peach','#F9CBA4'],
-    ['E','E0000','Floral White','#FAF2E8'],['E','E000','Pale Fruit Pink','#FFF8F2'],['E','E00','Skin White','#FEF1E6'],
-    ['E','E01','Pink Flamingo','#FBE2D4'],['E','E02','Fruit Pink','#F9D8C8'],['E','E04','Lipstick Natural','#EAC8CE'],
-    ['E','E07','Light Mahogany','#C07156'],['E','E08','Brown','#A45842'],['E','E09','Burnt Sienna','#9A4A35'],
-    ['E','E11','Barley Beige','#FEEFDE'],['E','E13','Light Suntan','#EFCBA4'],['E','E15','Dark Suntan','#DDA074'],
-    ['E','E17','Reddish Brass','#A25A3B'],['E','E18','Copper','#7E4228'],['E','E19','Redwood','#703A2A'],
-    ['E','E21','Baby Skin Pink','#FCD9BD'],['E','E23','Hazelnut','#CB9978'],['E','E25','Caribe Cocoa','#D0A179'],
-    ['E','E27','Africano','#84604A'],['E','E29','Burnt Umber','#5A3827'],['E','E30','Bisque','#F5E4C6'],
-    ['E','E31','Brick Beige','#EED5A9'],['E','E33','Sand','#E2BC88'],['E','E34','Orientale','#D3A472'],
-    ['E','E35','Chamois','#ECD0AD'],['E','E37','Sepia','#A6744F'],['E','E39','Leather','#8F5A38'],
-    ['E','E40','Brick White','#EFE0CA'],['E','E41','Pearl White','#F3E4CD'],['E','E42','Sand White','#EDD9B0'],
-    ['E','E43','Dull Ivory','#D9BD93'],['E','E44','Clay','#BBA184'],['E','E47','Dark Brown','#6C4A34'],
-    ['E','E49','Dark Bark','#4D3528'],['E','E50','Egg Shell','#F6F1F3'],['E','E51','Milky White','#F5E8D6'],
-    ['E','E53','Raw Silk','#E8D3AE'],['E','E55','Light Camel','#DCB887'],['E','E57','Light Walnut','#956A43'],
-    ['E','E59','Walnut','#6B4E3A'],['E','E70','Ash Rose','#DCCBB4'],['E','E71','Champagne','#C9B198'],
-    ['E','E74','Cocoa Brown','#7D6651'],['E','E77','Maroon','#6E4A3A'],['E','E79','Cashew','#4A3324'],
-    ['E','E81','Ivory','#DAC79E'],['E','E84','Khaki','#85765A'],['E','E87','Fig','#6B5548'],
-    ['E','E89','Pecan','#5E3E2E'],['E','E93','Tea Rose','#EAC9BD'],['E','E95','Flesh Pink','#E8B294'],
-    ['E','E97','Deep Orange','#C0784E'],['E','E99','Baked Clay','#6A3F2C'],
-    ['C','C-00','Cool Gray No.00','#F0F4F7'],['C','C-0','Cool Gray No.0','#EAEFF2'],['C','C-1','Cool Gray No.1','#D8DEE1'],
-    ['C','C-2','Cool Gray No.2','#C6CED1'],['C','C-3','Cool Gray No.3','#B1B9BD'],['C','C-4','Cool Gray No.4','#9BA3A7'],
-    ['C','C-5','Cool Gray No.5','#858C8F'],['C','C-6','Cool Gray No.6','#6F7679'],['C','C-7','Cool Gray No.7','#595F62'],
-    ['C','C-8','Cool Gray No.8','#44494C'],['C','C-9','Cool Gray No.9','#33373A'],['C','C-10','Cool Gray No.10','#22262A'],
-    ['N','N-0','Neutral Gray No.0','#ECECEC'],['N','N-1','Neutral Gray No.1','#DADADA'],['N','N-2','Neutral Gray No.2','#C6C6C6'],
-    ['N','N-3','Neutral Gray No.3','#B1B1B1'],['N','N-4','Neutral Gray No.4','#9C9C9C'],['N','N-5','Neutral Gray No.5','#868686'],
-    ['N','N-6','Neutral Gray No.6','#707070'],['N','N-7','Neutral Gray No.7','#5A5A5A'],['N','N-8','Neutral Gray No.8','#666565'],
-    ['N','N-9','Neutral Gray No.9','#3E3E3E'],['N','N-10','Neutral Gray No.10','#2B2B2B'],
-    ['T','T-0','Toner Gray No.0','#EEECE8'],['T','T-1','Toner Gray No.1','#DCDAD5'],['T','T-2','Toner Gray No.2','#C8C6C0'],
-    ['T','T-3','Toner Gray No.3','#B3B1AA'],['T','T-4','Toner Gray No.4','#9D9B94'],['T','T-5','Toner Gray No.5','#87857E'],
-    ['T','T-6','Toner Gray No.6','#716F68'],['T','T-7','Toner Gray No.7','#5B5952'],['T','T-8','Toner Gray No.8','#45433D'],
-    ['T','T-9','Toner Gray No.9','#302E28'],['T','T-10','Toner Gray No.10','#1F1D18'],
-    ['W','W-00','Warm Gray No.00','#EFEDE9'],['W','W-0','Warm Gray No.0','#E7E3DD'],['W','W-1','Warm Gray No.1','#D7D2CA'],
-    ['W','W-2','Warm Gray No.2','#C5BFB4'],['W','W-3','Warm Gray No.3','#B0A99D'],['W','W-4','Warm Gray No.4','#9B9285'],
-    ['W','W-5','Warm Gray No.5','#857C6E'],['W','W-6','Warm Gray No.6','#6F6659'],['W','W-7','Warm Gray No.7','#595143'],
-    ['W','W-8','Warm Gray No.8','#443C2E'],['W','W-9','Warm Gray No.9','#302921'],['W','W-10','Warm Gray No.10','#1F1A14'],
-    ['Achromatic','0','Colorless Blender','#FFFFFF'],['Achromatic','100','Black','#1B1B1B'],['Achromatic','110','Special Black','#0A0A0A'],
-    ['F','FRV1','Fluorescent Pink','#FF6BA8'],['F','FYR1','Fluorescent Orange','#FF8B3D'],['F','FY1','Fluorescent Yellow Orange','#FFD03D'],
-    ['F','FYG1','Fluorescent Yellow','#E4F53D'],['F','FV2','Fluorescent Dull Violet','#B59BCC'],['F','FYG2','Fluorescent Dull Yellow Green','#BACA85'],
-    ['F','FBG2','Fluorescent Dull Blue Green','#8ECBC8'],['F','FB2','Fluorescent Dull Blue','#92B4D0']
-  ];
-
-  // Posca data — hex values are approximations from public references
-  // (PoscART tip-sampling table + posca.com). Glitter codes use a 'G' prefix
-  // to disambiguate from standard codes that share the same number.
-  // Families = pen-tip sizes (not color categories) so the user can mark
-  // ownership PER nib: e.g. own PC-3M Yellow but not PC-5M Yellow.
-  const POSCA_FAMILIES = [
-    { code: '1M',  name: 'PC-1M · Extra fine 0.7 mm',     chipLabel: '1M'  },
-    { code: '3M',  name: 'PC-3M · Fine 0.9-1.3 mm',       chipLabel: '3M'  },
-    { code: '5M',  name: 'PC-5M · Medium 1.8-2.5 mm',     chipLabel: '5M'  },
-    { code: '7M',  name: 'PC-7M · Broad 4.5-5.5 mm',      chipLabel: '7M'  },
-    { code: '8K',  name: 'PC-8K · Chisel 8 mm',           chipLabel: '8K'  },
-    { code: '17K', name: 'PC-17K · Extra broad 15 mm',    chipLabel: '17K' },
-    { code: '3ML', name: 'PC-3ML · Glitter fine 0.9-1.3', chipLabel: '3ML' }
-  ];
-  // Color categories — the second filter axis on Posca's single view.
-  const POSCA_CATEGORIES = ['Standard', 'Pastel', 'Fluo', 'Metallic', 'Glitter'];
-
-  const POSCA_COLORS = [
-    ['Standard','255','White','#FFFFFF'],['Standard','24','Black','#000000'],
-    ['Standard','2','Yellow','#FFF102'],['Standard','3','Bright Yellow','#ED972C'],
-    ['Standard','4','Orange','#E6702B'],['Standard','5','Light Green','#85C167'],
-    ['Standard','6','Green','#079949'],['Standard','7','Khaki Green','#434433'],
-    ['Standard','8','Light Blue','#5BC3E7'],['Standard','9','Navy Blue','#17344F'],
-    ['Standard','10','Prussian Blue','#323F7C'],['Standard','11','Fuchsia','#992265'],
-    ['Standard','12','Violet','#694087'],['Standard','13','Pink','#E05794'],
-    ['Standard','14','Dark Red','#9B2330'],['Standard','15','Red','#DA2229'],
-    ['Standard','17','Powder Pink','#EACECB'],['Standard','19','Ochre','#F5BD30'],
-    ['Standard','20','Chestnut','#BB6449'],['Standard','21','Brown','#6F4630'],
-    ['Standard','22','Dark Brown','#4C2C30'],['Standard','25','Gold','#A18B44'],
-    ['Standard','26','Silver','#BCBEBD'],['Standard','31','Emerald Green','#3CB292'],
-    ['Standard','33','Blue','#025094'],['Standard','34','Lilac','#9686B2'],
-    ['Standard','37','Grey','#A0A09F'],['Standard','42','Bronze','#B68566'],
-    ['Standard','45','Beige','#D4BE86'],['Standard','46','Ivory','#EDDF9D'],
-    ['Standard','48','Sky Blue','#6F93C0'],['Standard','51','Light Pink','#F1BECF'],
-    ['Standard','54','Light Orange','#EFA25F'],['Standard','56','Ruby Red','#A92428'],
-    ['Standard','57','Raspberry','#B84775'],['Standard','60','Red Wine','#6F0932'],
-    ['Standard','61','Slate Grey','#3C5161'],['Standard','66','Coral Pink','#FA9D8F'],
-    ['Standard','68','Satin Pink','#E6B6A2'],['Standard','72','Apple Green','#71B943'],
-    ['Standard','73','Straw Yellow','#FFDE7D'],['Standard','82','Deep Grey','#646465'],
-    ['Standard','83','English Green','#006144'],['Standard','84','Cacao Brown','#6A2926'],
-    ['Pastel','P2','Sunshine Yellow','#F7E872'],['Pastel','P4','Apricot','#F5BD84'],
-    ['Pastel','P6','Aqua Green','#73DCD5'],['Pastel','P11','Lavender','#C181D1'],
-    ['Pastel','P33','Glacier Blue','#69CAF8'],
-    ['Fluo','F2','Fluorescent Yellow','#FEFF2E'],['Fluo','F4','Fluorescent Orange','#FF7143'],
-    ['Fluo','F6','Fluorescent Green','#03BF6E'],['Fluo','F13','Fluorescent Pink','#FF3EB5'],
-    ['Fluo','F15','Fluorescent Red','#FF5155'],['Fluo','F54','Fluorescent Light Orange','#FEFE6E'],
-    ['Metallic','M6','Metallic Green','#58A59A'],['Metallic','M12','Metallic Violet','#856CA2'],
-    ['Metallic','M13','Metallic Pink','#A66E96'],['Metallic','M15','Metallic Red','#BF6F58'],
-    ['Metallic','M33','Metallic Blue','#5D99AE'],
-    ['Glitter','G2','Glitter Yellow','#C1B100'],['Glitter','G4','Glitter Orange','#C37237'],
-    ['Glitter','G6','Glitter Green','#669959'],['Glitter','G8','Glitter Light Blue','#4594AF'],
-    ['Glitter','G12','Glitter Violet','#725899'],['Glitter','G13','Glitter Pink','#BB7E91'],
-    ['Glitter','G15','Glitter Red','#BD5F74'],['Glitter','G33','Glitter Dark Blue','#056CAB']
-  ];
-
-  // Posca pen-size availability per family. Approximations from the public
-  // Posca range — Standard colors live across most sizes, Pastel/Fluo are
-  // typically the medium tips, Metallic ships in PC-3M(L)/PC-5M, Glitter is
-  // PC-3ML only. Edit per-color overrides in POSCA_NIB_OVERRIDES if needed.
-  const POSCA_NIBS_BY_FAMILY = {
-    Standard: ['1M', '3M', '5M', '7M', '8K', '17K'],
-    Pastel:   ['3M', '5M'],
-    Fluo:     ['3M', '5M', '8K'],
-    Metallic: ['3M', '5M'],
-    Glitter:  ['3ML']
-  };
-  // Per-color nib overrides: code → array of nib labels (replaces family default)
-  const POSCA_NIB_OVERRIDES = {
-    '255': ['1M', '3M', '5M', '7M', '8K', '17K'],
-    '24':  ['1M', '3M', '5M', '7M', '8K', '17K']
-  };
-  function nibsForColor(family, code) {
-    if (POSCA_NIB_OVERRIDES[code]) return POSCA_NIB_OVERRIDES[code];
-    return POSCA_NIBS_BY_FAMILY[family] || [];
-  }
-
-  // Active brand: 'copic' (default) or 'posca'. Stored separately so brand
-  // switch survives reloads. Switching brands does a full reload — simpler
-  // and fast (~80ms) compared to in-place rebuild.
-  const BRAND_KEY = 'marker-brand';
-  const currentBrand = (function() {
-    try {
-      const v = localStorage.getItem(BRAND_KEY);
-      return v === 'posca' ? 'posca' : 'copic';
-    } catch(e) { return 'copic'; }
-  })();
-  document.body.dataset.brand = currentBrand;
-  const FAMILIES = currentBrand === 'posca' ? POSCA_FAMILIES : COPIC_FAMILIES;
-  const COLORS   = currentBrand === 'posca' ? POSCA_COLORS   : COPIC_COLORS;
-  // Insert a visual divider AFTER the chip whose code is in this set.
-  // Copic groups: color-spectrum | C/N/T/W gray | Achromatic + Fluo.
-  const DIVIDERS = currentBrand === 'posca' ? new Set() : new Set(['E', 'W']);
-
-  function textColorFor(hex) {
-    // WCAG relative luminance — pick whichever of black/white yields the
-    // higher contrast ratio against this swatch background. The previous
-    // "lum > 150" shortcut put white text on saturated mid-tones (pink,
-    // emerald, sky blue) where black actually has 2-3× more contrast.
-    const r = parseInt(hex.slice(1,3),16) / 255;
-    const g = parseInt(hex.slice(3,5),16) / 255;
-    const b = parseInt(hex.slice(5,7),16) / 255;
-    const f = function(c) { return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
-    const L = 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
-    const cWhite = 1.05 / (L + 0.05);
-    const cBlack = (L + 0.05) / 0.05;
-    return cBlack >= cWhite ? '#111' : '#fff';
-  }
-
-  function fgKindFor(hex) {
-    return textColorFor(hex) === '#fff' ? 'light' : 'dark';
-  }
-
-  function makeMiniSwatch(family, code, name, hex, nib) {
-    const fg = textColorFor(hex);
-    const mini = document.createElement('div');
-    mini.className = 'mini missing';
-    mini.style.background = hex;
-    mini.style.color = fg;
-    mini.dataset.code = code;
-    mini.dataset.family = family;
-    mini.dataset.name = name;
-    mini.dataset.fg = fgKindFor(hex);
-    mini.setAttribute('role', 'button');
-    mini.setAttribute('tabindex', '0');
-    mini.setAttribute('aria-pressed', 'false');
-
-    if (nib) {
-      mini.dataset.nib = nib;
-      mini.dataset.search = (code + ' ' + name + ' ' + nib + ' PC-' + nib).toLowerCase();
-      mini.title = code + ' · ' + name + ' · PC-' + nib;
-      const nibEl = document.createElement('span');
-      nibEl.className = 'mini-nib';
-      nibEl.textContent = nib;
-      mini.appendChild(nibEl);
-    } else {
-      mini.dataset.search = (code + ' ' + name).toLowerCase();
-      mini.title = code + ' · ' + name;
-    }
-    const label = document.createElement('span');
-    label.className = 'mini-label';
-    label.textContent = code;
-    mini.appendChild(label);
-    return mini;
-  }
-
-  function makeCardSwatch(family, code, name, hex) {
-    const fg = textColorFor(hex);
-    const sw = document.createElement('div');
-    sw.className = 'swatch missing';
-    sw.style.background = hex;
-    sw.style.color = fg;
-    sw.dataset.code = code;
-    sw.dataset.family = family;
-    sw.dataset.name = name;
-    sw.dataset.fg = fgKindFor(hex);
-    sw.dataset.search = (code + ' ' + name).toLowerCase();
-    sw.setAttribute('role', 'button');
-    sw.setAttribute('tabindex', '0');
-    sw.setAttribute('aria-pressed', 'false');
-    sw.title = code + ' · ' + name;
-
-    const codeEl = document.createElement('div');
-    codeEl.className = 'swatch-code';
-    codeEl.textContent = code;
-    sw.appendChild(codeEl);
-
-    const nameEl = document.createElement('div');
-    nameEl.className = 'swatch-name';
-    nameEl.textContent = name;
-    sw.appendChild(nameEl);
-
-    return sw;
-  }
-
-  function buildUI() {
-    const spectrumStrip = document.getElementById('spectrumStrip');
-    const carouselTrack = document.getElementById('carouselTrack');
-
-    // Spectrum (All) view: dense mini-grid. Copic gets one tile per color
-    // (each marker is a unique color). Posca gets one tile per (color, nib)
-    // pair — six yellows for Y2 sit next to each other, each tickable in
-    // isolation. This makes the All view a true marker inventory instead
-    // of a color-rollup.
-    //
-    // For Posca we ALSO render a parallel set of "grouped" tiles (one per
-    // unique color). The Group toggle in the toolbar swaps which set is
-    // visible via a body class — both sets share ownership state, so the
-    // switch is instant and doesn't reflow when toggled.
-    const stripFrag = document.createDocumentFragment();
-    COLORS.forEach(([family, code, name, hex]) => {
-      if (currentBrand === 'posca') {
-        nibsForColor(family, code).forEach(function(nib) {
-          stripFrag.appendChild(makeMiniSwatch(family, code, name, hex, nib));
-        });
-      } else {
-        stripFrag.appendChild(makeMiniSwatch(family, code, name, hex));
+    // Spectrum sort: greys/browns first by lightness, then hue (spec-fixed).
+    function spectrumKey(hex) {
+      const r = parseInt(hex.slice(1, 3), 16) / 255,
+            g = parseInt(hex.slice(3, 5), 16) / 255,
+            b = parseInt(hex.slice(5, 7), 16) / 255;
+      const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2;
+      const s = max === min ? 0 : (max - min) / (1 - Math.abs(2 * l - 1));
+      let h = 0;
+      if (max !== min) {
+        if (max === r) h = ((g - b) / (max - min) + 6) % 6;
+        else if (max === g) h = (b - r) / (max - min) + 2;
+        else h = (r - g) / (max - min) + 4;
+        h /= 6;
       }
-    });
-    if (currentBrand === 'posca') {
-      const seen = new Set();
-      COLORS.forEach(([family, code, name, hex]) => {
-        if (seen.has(code)) return;
-        seen.add(code);
-        const tile = makeMiniSwatch(family, code, name, hex);
-        tile.classList.add('grouped');
-        const nibCount = nibsForColor(family, code).length;
-        tile.dataset.nibCount = String(nibCount);
-        tile.dataset.ownedCount = '0';
-        tile.title = code + ' · ' + name + ' · ' + nibCount + ' size' + (nibCount === 1 ? '' : 's');
-        stripFrag.appendChild(tile);
-      });
-    }
-    spectrumStrip.appendChild(stripFrag);
-
-    // Unified filter block — single section above the spectrum that holds
-    // every view control. CSS Grid keeps labels right-aligned and pills
-    // column-aligned across rows. Both brands now use the same single-view
-    // pattern; what differs is the rows: Copic gets View + Family + Display,
-    // Posca gets View + Sizes + Colors + Display.
-    const filterBlock = document.getElementById('filterBlock');
-
-    function makePillButton(text, attrs) {
-      const pill = document.createElement('button');
-      pill.className = 'size-pill';
-      pill.textContent = text;
-      Object.keys(attrs || {}).forEach(function(k) { pill.setAttribute(k, attrs[k]); });
-      return pill;
+      return s < 0.12 ? l : 1 + h;  // greys/browns first by lightness, then hue
     }
 
-    function appendFilterRow(label, pillsEl, metaEl) {
-      const row = document.createElement('div');
-      row.className = 'filter-row';
-      const labelEl = document.createElement('span');
-      labelEl.className = 'filter-row-label';
-      labelEl.textContent = label;
-      row.appendChild(labelEl);
-      pillsEl.classList.add('filter-row-pills');
-      if (!metaEl) pillsEl.classList.add('span-meta');
-      row.appendChild(pillsEl);
-      if (metaEl) {
-        metaEl.classList.add('filter-row-meta');
-        row.appendChild(metaEl);
-      }
-      filterBlock.appendChild(row);
-    }
-
-    // View row — move existing All/Owned/Missing pills + meta count out of
-    // the (now hidden) carousel header.
-    const viewPills = document.createElement('div');
-    const filterGroupEl = document.querySelector('.filter-group');
-    Array.from(filterGroupEl.children).forEach(function(btn) {
-      viewPills.appendChild(btn);
-    });
-    const metaEl = document.getElementById('carouselMeta');
-    appendFilterRow('View', viewPills, metaEl);
-
-    // "All" pill — quick toggle that flips every sibling pill in the row
-    // between all-visible and all-hidden. Sits at the start of the row so
-    // it reads as the affordance for the whole group. Wired up later once
-    // the apply* functions exist.
-    function makeAllPill(group) {
-      const p = makePillButton('All', {
-        'data-all': group,
-        'aria-pressed': 'true',
-        'aria-label': 'Toggle all ' + group
-      });
-      p.classList.add('all-pill');
-      return p;
-    }
-
-    // Sizes row (Posca only) — 1M, 3M, 5M, 7M, 8K, 17K, 3ML.
-    if (currentBrand === 'posca') {
-      const sizePillsEl = document.createElement('div');
-      sizePillsEl.id = 'sizeFilter';
-      sizePillsEl.setAttribute('role', 'group');
-      sizePillsEl.setAttribute('aria-label', 'Filter sizes');
-      sizePillsEl.appendChild(makeAllPill('nibs'));
-      POSCA_FAMILIES.forEach(function(f) {
-        sizePillsEl.appendChild(makePillButton(f.code, {
-          'data-nib': f.code,
-          'aria-pressed': 'true',
-          'aria-label': 'Toggle ' + f.name
-        }));
-      });
-      appendFilterRow('Sizes', sizePillsEl);
-    }
-
-    // Family/Colors row — Posca: 5 categories. Copic: 17 color families,
-    // shown via chipLabel when set (Achromatic → "0/100").
-    const catPillsEl = document.createElement('div');
-    catPillsEl.id = 'catFilter';
-    catPillsEl.setAttribute('role', 'group');
-    catPillsEl.appendChild(makeAllPill('cats'));
-    if (currentBrand === 'posca') {
-      catPillsEl.setAttribute('aria-label', 'Filter color categories');
-      POSCA_CATEGORIES.forEach(function(cat) {
-        catPillsEl.appendChild(makePillButton(cat, {
-          'data-cat': cat,
-          'aria-pressed': 'true',
-          'aria-label': 'Toggle ' + cat
-        }));
-      });
-      appendFilterRow('Colors', catPillsEl);
-    } else {
-      catPillsEl.setAttribute('aria-label', 'Filter color families');
-      COPIC_FAMILIES.forEach(function(f) {
-        catPillsEl.appendChild(makePillButton(f.chipLabel || f.code, {
-          'data-cat': f.code,
-          'aria-pressed': 'true',
-          'aria-label': 'Toggle ' + f.name
-        }));
-      });
-      appendFilterRow('Family', catPillsEl);
-    }
-
-    // Display row — codes/nibs/group toggles relocate from the toolbar
-    // and shed their icon-only ghost-btn skin for the same text-pill
-    // language as the other rows. Codes always; nibs/group Posca-only.
-    const displayPills = document.createElement('div');
-    displayPills.id = 'displayFilter';
-    displayPills.setAttribute('role', 'group');
-    displayPills.setAttribute('aria-label', 'Display options');
-
-    function relocateToggleAsPill(id, label, ariaLabel) {
-      const btn = document.getElementById(id);
-      if (!btn) return;
-      btn.classList.remove('ghost-btn');
-      btn.classList.add('size-pill');
-      btn.textContent = label;
-      btn.setAttribute('aria-label', ariaLabel);
-      btn.removeAttribute('title');
-      displayPills.appendChild(btn);
-    }
-    relocateToggleAsPill('codeToggle', 'Codes', 'Show color codes');
-    if (currentBrand === 'posca') {
-      relocateToggleAsPill('nibToggle', 'Nibs', 'Show nib labels');
-      relocateToggleAsPill('groupToggle', 'Group', 'Group sizes per color');
-    }
-    appendFilterRow('Display', displayPills);
-  }
-
-  buildUI();
-
-  (function() {
-    const root = document.documentElement;
-    const themeBtn = document.getElementById('themeToggle');
-    const themeIcon = document.getElementById('themeIcon');
-    const themeLabel = document.getElementById('themeLabel');
-    const resetBtn = document.getElementById('resetBtn');
-    const exportBtn = document.getElementById('exportBtn');
-    // Posca total = sum of markers (color × nib) across all colors. Copic
-    // total = unique colors (each color is one marker). Drives the "X / N"
-    // counter in the toolbar.
-    const total = currentBrand === 'posca'
-      ? COLORS.reduce(function(sum, c) { return sum + nibsForColor(c[0], c[1]).length; }, 0)
-      : COLORS.length;
-
-    const STORAGE_KEY = currentBrand + '-owned';
-    const SLIDE_KEY = currentBrand + '-slide';
-    const THEME_KEY = 'marker-theme';
-    const FILTER_KEY = 'marker-filter';
-    const CODES_HIDDEN_KEY = 'marker-codes-hidden';
-    const NIBS_HIDDEN_KEY = 'marker-nibs-hidden';
-    const GROUP_KEY = 'marker-grouped';
-    const HIDDEN_NIBS_KEY = 'marker-hidden-nibs';
-    // Brand-scoped: Posca categories (Standard/Pastel/...) and Copic
-    // family codes (Y/YG/G/...) are disjoint, but the user can have
-    // independent preferences per brand.
-    const HIDDEN_CATS_KEY = currentBrand + '-hidden-cats';
-
-    // Resilient storage
-    const storage = (function() {
-      let claudeStorageWorks = typeof window.storage !== 'undefined';
-      let localStorageWorks = (function() {
-        try {
-          const k = '__copic_test__';
-          window.localStorage.setItem(k, '1');
-          window.localStorage.removeItem(k);
-          return true;
-        } catch (e) { return false; }
-      })();
-
-      function get(key) {
-        return new Promise(function(resolve) {
-          if (claudeStorageWorks) {
-            window.storage.get(key).then(function(r) {
-              if (r && r.value !== undefined) { resolve(r.value); return; }
-              if (localStorageWorks) {
-                try { resolve(window.localStorage.getItem(key)); } catch(e) { resolve(null); }
-              } else resolve(null);
-            }).catch(function() {
-              claudeStorageWorks = false;
-              if (localStorageWorks) {
-                try { resolve(window.localStorage.getItem(key)); } catch(e) { resolve(null); }
-              } else resolve(null);
-            });
-          } else if (localStorageWorks) {
-            try { resolve(window.localStorage.getItem(key)); } catch(e) { resolve(null); }
-          } else resolve(null);
-        });
-      }
-
-      function set(key, value) {
-        if (claudeStorageWorks) {
-          window.storage.set(key, value).catch(function() { claudeStorageWorks = false; });
-        }
-        if (localStorageWorks) {
-          try { window.localStorage.setItem(key, value); } catch(e) { localStorageWorks = false; }
-        }
-      }
-
-      return { get: get, set: set };
-    })();
-
-    // Theme
-    function initTheme() {
-      storage.get(THEME_KEY).then(function(theme) {
-        if (!theme) {
-          theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        }
-        root.setAttribute('data-theme', theme);
-        updateThemeButton();
-      });
-    }
-
-    const SUN_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>';
-    const MOON_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
-
-    function updateThemeButton() {
-      const theme = root.getAttribute('data-theme');
-      if (theme === 'dark') {
-        themeIcon.innerHTML = SUN_ICON;
-        themeLabel.textContent = 'Light';
-      } else {
-        themeIcon.innerHTML = MOON_ICON;
-        themeLabel.textContent = 'Dark';
-      }
-    }
-
-    themeBtn.addEventListener('click', function() {
-      const current = root.getAttribute('data-theme');
-      const next = current === 'dark' ? 'light' : 'dark';
-      root.setAttribute('data-theme', next);
-      updateThemeButton();
-      storage.set(THEME_KEY, next);
-    });
-
-    // Follow system theme changes when user has no explicit preference set
-    if (window.matchMedia) {
-      const mq = window.matchMedia('(prefers-color-scheme: dark)');
-      mq.addEventListener('change', function(e) {
-        storage.get(THEME_KEY).then(function(stored) {
-          if (stored === 'light' || stored === 'dark') return;
-          root.setAttribute('data-theme', e.matches ? 'dark' : 'light');
-          updateThemeButton();
-        });
-      });
-    }
-
-    // Tile state
-    const allTiles = Array.from(document.querySelectorAll('.swatch, .mini'));
-    // `swatches` is the canonical per-marker tile collection — used by
-    // saveOwned, syncGroupedTile, parseImport. Both brands now live in the
-    // spectrum strip; family slides are gone.
-    const swatches = Array.from(document.querySelectorAll('#spectrumStrip .mini:not(.grouped)'));
-
-    function currentOwnedSet() {
-      // Distinct owned color codes. Copic: matches storage. Posca: "colors
-      // with at least one owned nib" — used for stats, export, import-confirm.
-      const set = new Set();
-      swatches.forEach(function(s) {
-        if (s.classList.contains('owned')) set.add(s.dataset.code);
-      });
-      return set;
-    }
-
-    function currentOwnedNibs() {
-      // Posca only: { code: [nib, ...] }, built from nib-slide swatch state.
-      const map = {};
-      swatches.forEach(function(s) {
-        if (!s.classList.contains('owned')) return;
-        const code = s.dataset.code;
-        const nib = s.dataset.nib;
-        if (!nib) return;
-        if (!map[code]) map[code] = [];
-        if (map[code].indexOf(nib) === -1) map[code].push(nib);
-      });
-      return map;
-    }
-
-    function setTileOwned(tile, owned) {
-      tile.classList.toggle('owned', owned);
-      tile.classList.toggle('missing', !owned);
-      tile.setAttribute('aria-pressed', owned ? 'true' : 'false');
-    }
-
-    function syncCode(code, owned) {
-      allTiles.forEach(function(tile) {
-        if (tile.dataset.code === code) setTileOwned(tile, owned);
-      });
-    }
-
-    function syncPoscaPair(code, nib, owned) {
-      // Sync every tile that represents this (code, nib) marker — spectrum
-      // mini and family-slide card. They share dataset.code and dataset.nib.
-      allTiles.forEach(function(tile) {
-        if (tile.dataset.code === code && tile.dataset.nib === nib) {
-          setTileOwned(tile, owned);
-        }
-      });
-      syncGroupedTile(code);
-    }
-
-    function syncGroupedTile(code) {
-      // Recompute the grouped tile's state from its component marker tiles.
-      // "Owned" = at least one nib owned; partial = some-but-not-all.
-      const grouped = document.querySelector('#spectrumStrip .mini.grouped[data-code="' + cssEscape(code) + '"]');
-      if (!grouped) return;
-      // Count owned per (code, nib) — use family-slide swatches as truth
-      // (they're the canonical per-nib state and exist for every marker).
-      let owned = 0;
-      let total = 0;
-      swatches.forEach(function(s) {
-        if (s.dataset.code === code && s.dataset.nib) {
-          total++;
-          if (s.classList.contains('owned')) owned++;
-        }
-      });
-      grouped.dataset.ownedCount = String(owned);
-      const partial = owned > 0 && owned < total;
-      setTileOwned(grouped, owned > 0);
-      grouped.dataset.partial = partial ? 'true' : 'false';
-    }
-
-    function syncAllGroupedTiles() {
-      const seen = new Set();
-      swatches.forEach(function(s) {
-        if (s.dataset.code && !seen.has(s.dataset.code)) {
-          seen.add(s.dataset.code);
-          syncGroupedTile(s.dataset.code);
-        }
-      });
-    }
-
-    function cssEscape(s) {
-      return (window.CSS && CSS.escape) ? CSS.escape(s) : String(s).replace(/[^a-zA-Z0-9_-]/g, '\\$&');
-    }
-
-    function bulkToggleColor(code, newOwned) {
-      // Toggle every (code, *) tile — spectrum markers + family-slide cards
-      // for that color. Then refresh the grouped tile to reflect the new
-      // unanimous state.
-      allTiles.forEach(function(tile) {
-        if (tile.dataset.code === code && tile.dataset.nib) {
-          setTileOwned(tile, newOwned);
-        }
-      });
-      syncGroupedTile(code);
-    }
-
-    function applyOwnedSet(set) {
-      // Code-level apply: marks every tile (spectrum + every nib slot) for
-      // any listed code. For Posca this means "all nibs of that color" —
-      // the right semantics for reset (empty set) and code-only imports.
-      allTiles.forEach(function(tile) { setTileOwned(tile, set.has(tile.dataset.code)); });
-      if (currentBrand === 'posca') syncAllGroupedTiles();
-      updateStats();
-    }
-
-    function applyPoscaOwned(map) {
-      // Per-(code, nib) apply: every nib-bearing tile (spectrum mini +
-      // family card) reflects map[code].includes(nib). Grouped tiles are
-      // refreshed afterward via syncAllGroupedTiles.
-      allTiles.forEach(function(t) {
-        if (!t.dataset.nib) return;
-        const code = t.dataset.code;
-        const nib = t.dataset.nib;
-        const owned = !!(map[code] && map[code].indexOf(nib) !== -1);
-        setTileOwned(t, owned);
-      });
-      syncAllGroupedTiles();
-      updateStats();
-    }
-
-    function checkEmptyState() {
-      const activeSlide = document.querySelector('.carousel-slide.active');
-      if (!activeSlide) return;
-      const tiles = activeSlide.querySelectorAll('.swatch, .mini');
-      const isSearching = document.body.classList.contains('searching');
-      const filter = document.body.getAttribute('data-filter');
-      const groupMode = document.body.classList.contains('group-mode');
-      let visibleCount = 0;
-      tiles.forEach(function(t) {
-        const isOwned = t.classList.contains('owned');
-        const isGrouped = t.classList.contains('grouped');
-        let visible = true;
-        if (filter === 'owned' && !isOwned) visible = false;
-        if (filter === 'missing' && isOwned) visible = false;
-        if (isSearching && !t.classList.contains('match')) visible = false;
-        // Size + family filters hide tiles via CSS classes — mirror those
-        // checks here so the empty-state kicks in when the user unpresses
-        // every relevant pill. Posca-specific: nib + group mode toggles.
-        if (currentBrand === 'posca') {
-          if (groupMode && !isGrouped) visible = false;
-          if (!groupMode && isGrouped) visible = false;
-          if (t.dataset.nib && document.body.classList.contains('hide-nib-' + t.dataset.nib) && !groupMode) {
-            visible = false;
-          }
-        }
-        // Family filter applies to both brands.
-        if (t.dataset.family && document.body.classList.contains('hide-cat-' + t.dataset.family)) {
-          visible = false;
-        }
-        if (visible) visibleCount++;
-      });
-      const isEmpty = visibleCount === 0;
-      document.body.classList.toggle('empty-active', isEmpty);
-      if (isEmpty) {
-        const noun = currentBrand === 'posca' ? 'markers' : 'colors';
-        const text = document.getElementById('emptyStateText');
-        if (isSearching) text.textContent = 'No ' + noun + ' match your search.';
-        else if (filter === 'owned') text.textContent = "You haven't marked any " + noun + ' as owned yet.';
-        else if (filter === 'missing') text.textContent = 'You own every ' + noun + ' in this view.';
-        else text.textContent = 'No ' + noun + ' to show.';
-      }
-    }
-
-    function refreshCarouselMeta() {
-      const activeSlide = document.querySelector('.carousel-slide.active');
-      if (!activeSlide) return;
-      const meta = document.getElementById('carouselMeta');
-      let count, slideTotal;
-      if (activeSlide.id === 'spectrum') {
-        slideTotal = total;
-        count = 0;
-        // Only count canonical per-marker tiles. In Posca's group mode the
-        // grouped clones share dataset.code with markers and would double
-        // the count if included.
-        activeSlide.querySelectorAll('.mini:not(.grouped)').forEach(function(t) {
-          if (t.classList.contains('owned')) count++;
-        });
-      } else {
-        slideTotal = parseInt(activeSlide.dataset.familyTotal, 10) || 0;
-        count = 0;
-        activeSlide.querySelectorAll('.swatch').forEach(function(s) {
-          if (s.classList.contains('owned')) count++;
-        });
-      }
-      const strong = document.createElement('strong');
-      strong.textContent = String(count);
-      meta.textContent = '';
-      meta.appendChild(strong);
-      meta.appendChild(document.createTextNode(' / ' + slideTotal));
-      checkEmptyState();
-    }
-
-    function updateStats() {
-      refreshCarouselMeta();
-    }
-
-    function saveOwned() {
-      if (currentBrand === 'posca') {
-        storage.set(STORAGE_KEY, JSON.stringify(currentOwnedNibs()));
-      } else {
-        storage.set(STORAGE_KEY, JSON.stringify(Array.from(currentOwnedSet())));
-      }
-    }
-
-    function loadOwned() {
-      storage.get(STORAGE_KEY).then(function(value) {
-        if (!value) return;
-        try {
-          const parsed = JSON.parse(value);
-          if (currentBrand === 'posca') {
-            // Migration: legacy array of codes → all available nibs owned.
-            let map;
-            if (Array.isArray(parsed)) {
-              map = {};
-              parsed.forEach(function(code) {
-                const row = COLORS.find(function(c) { return c[1] === code; });
-                if (row) map[code] = nibsForColor(row[0], code).slice();
-              });
-            } else if (parsed && typeof parsed === 'object') {
-              map = parsed;
-            } else {
-              return;
-            }
-            applyPoscaOwned(map);
-          } else {
-            applyOwnedSet(new Set(parsed));
-          }
-        } catch (e) { /* ignore */ }
-      });
-    }
-
-    // Toast
-    const toast = document.getElementById('toast');
-    const toastText = toast.querySelector('.toast-text');
-    let toastTimer;
-
-    function showToast(message, removed) {
-      toastText.textContent = message;
-      toast.classList.toggle('removed', !!removed);
-      toast.classList.add('visible');
-      clearTimeout(toastTimer);
-      toastTimer = setTimeout(function() { toast.classList.remove('visible'); }, 1400);
-    }
-
-    // Tile click — Posca per (color, nib); grouped Posca tile bulk-toggles
-    // every nib of that color; Copic toggles per color.
-    allTiles.forEach(function(tile) {
-      tile.addEventListener('click', function() {
-        const code = tile.dataset.code;
-        const name = tile.dataset.name || '';
-        const nib = tile.dataset.nib;
-        const isGrouped = tile.classList.contains('grouped');
-
-        let newOwned, label;
-        if (currentBrand === 'posca' && isGrouped) {
-          // Grouped click: any-owned → clear all; none-owned → mark all.
-          // Partial collapses to fully-cleared with one tap.
-          newOwned = !tile.classList.contains('owned');
-          bulkToggleColor(code, newOwned);
-          const nibCount = parseInt(tile.dataset.nibCount, 10) || 0;
-          const base = name ? code + ' · ' + name : code;
-          label = base + ' (' + nibCount + ' size' + (nibCount === 1 ? '' : 's') + ')';
-        } else if (currentBrand === 'posca' && nib) {
-          newOwned = !tile.classList.contains('owned');
-          syncPoscaPair(code, nib, newOwned);
-          const base = name ? code + ' · ' + name : code;
-          label = base + ' (PC-' + nib + ')';
-        } else {
-          newOwned = !tile.classList.contains('owned');
-          syncCode(code, newOwned);
-          label = name ? code + ' · ' + name : code;
-        }
-        updateStats();
-        saveOwned();
-        showToast((newOwned ? 'Added ' : 'Removed ') + label, !newOwned);
-      });
-      tile.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          tile.click();
-        }
-      });
-    });
-
-    // Reset
-    resetBtn.addEventListener('click', function() {
-      if (!confirm('Clear your entire list? This cannot be undone.')) return;
-      applyOwnedSet(new Set());
-      saveOwned();
-    });
-
-    // Export
-    exportBtn.addEventListener('click', function() {
-      const date = new Date().toISOString().split('T')[0];
-      const allCodes = Array.from(new Set(COLORS.map(function(c) { return c[1]; })));
-      const owned = Array.from(currentOwnedSet()).sort();
-      const missing = allCodes.filter(function(c) { return owned.indexOf(c) === -1; }).sort();
-      const brandLabel = currentBrand === 'posca' ? 'POSCA' : 'COPIC SKETCH';
-
-      let text = brandLabel + ' INVENTORY\n' +
-        'Exported: ' + date + '\n\n' +
-        'OWNED (' + owned.length + '):\n' +
-        owned.join(', ') + '\n\n' +
-        'MISSING (' + missing.length + '):\n' +
-        missing.join(', ');
-
-      if (currentBrand === 'posca') {
-        const map = currentOwnedNibs();
-        const lines = Object.keys(map).sort().map(function(code) {
-          return code + ': ' + map[code].join(', ');
-        });
-        text += '\n\nOWNED PER NIB:\n' + (lines.length ? lines.join('\n') : '(none)');
-      }
-
-      const blob = new Blob([text], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = currentBrand + '-inventory-' + date + '.txt';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    });
-
-    // Import
-    const importBtn = document.getElementById('importBtn');
-    const importFile = document.getElementById('importFile');
-    importBtn.addEventListener('click', function() { importFile.click(); });
-
-    importFile.addEventListener('change', function(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        const text = evt.target.result;
-        const parsed = parseImport(text);
-        if (parsed.size === 0) {
-          alert('No valid ' + (currentBrand === 'posca' ? 'Posca' : 'Copic') + ' codes found in this file.');
-          return;
-        }
-        const current = currentOwnedSet();
-        const message = current.size > 0
-          ? 'Import ' + parsed.size + ' markers? This will replace your current list of ' + current.size + '.'
-          : 'Import ' + parsed.size + ' markers?';
-        if (!confirm(message)) return;
-        applyOwnedSet(parsed);
-        saveOwned();
-      };
-      reader.onerror = function() { alert('Could not read file.'); };
-      reader.readAsText(file);
-      importFile.value = '';
-    });
-
-    function parseImport(text) {
-      const allCodes = new Set(swatches.map(function(s) { return s.dataset.code; }));
-      const found = new Set();
+    function getStoredMode() {
       try {
-        const json = JSON.parse(text);
-        const arr = Array.isArray(json) ? json : (json.owned || []);
-        arr.forEach(function(code) { if (allCodes.has(code)) found.add(code); });
-        if (found.size > 0) return found;
-      } catch (e) { /* not JSON */ }
-
-      // Find owned section: support both EN ("OWNED") and legacy NL ("IN BEZIT")
-      let scanText = text;
-      const ownedIdx = Math.max(text.indexOf('OWNED'), text.indexOf('IN BEZIT'));
-      if (ownedIdx !== -1) {
-        let endIdx = text.indexOf('MISSING', ownedIdx);
-        if (endIdx === -1) endIdx = text.indexOf('MIST', ownedIdx);
-        scanText = endIdx !== -1
-          ? text.substring(ownedIdx, endIdx)
-          : text.substring(ownedIdx);
-      }
-      const tokens = scanText.split(/[^A-Za-z0-9-]+/);
-      tokens.forEach(function(token) {
-        const clean = token.trim();
-        if (clean && allCodes.has(clean)) found.add(clean);
-      });
-      return found;
-    }
-
-    // Filter
-    const filterBtns = document.querySelectorAll('.filter-pill[data-filter]');
-    filterBtns.forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        const filter = btn.dataset.filter;
-        if (filter === 'all') document.body.removeAttribute('data-filter');
-        else document.body.setAttribute('data-filter', filter);
-        filterBtns.forEach(function(b) { b.classList.toggle('active', b === btn); });
-        try { localStorage.setItem(FILTER_KEY, filter); } catch(e) {}
-        checkEmptyState();
-      });
-    });
-
-    // Codes pill — pressed = codes visible. Storage key keeps its
-    // legacy semantics (true = hidden) so existing user state survives.
-    const codeToggle = document.getElementById('codeToggle');
-    (function initCodes() {
-      const hidden = (function() { try { return localStorage.getItem(CODES_HIDDEN_KEY) === 'true'; } catch(e) { return false; } })();
-      document.body.classList.toggle('hide-codes', hidden);
-      codeToggle.setAttribute('aria-pressed', hidden ? 'false' : 'true');
-    })();
-    codeToggle.addEventListener('click', function() {
-      const wasShown = codeToggle.getAttribute('aria-pressed') === 'true';
-      const newShown = !wasShown;
-      codeToggle.setAttribute('aria-pressed', newShown ? 'true' : 'false');
-      document.body.classList.toggle('hide-codes', !newShown);
-      try { localStorage.setItem(CODES_HIDDEN_KEY, !newShown ? 'true' : 'false'); } catch(e) {}
-    });
-
-    // Nibs pill (Posca only) — pressed = nib labels visible. Same legacy
-    // storage semantic as codes.
-    const nibToggle = document.getElementById('nibToggle');
-    (function initNibs() {
-      const hidden = (function() { try { return localStorage.getItem(NIBS_HIDDEN_KEY) === 'true'; } catch(e) { return false; } })();
-      document.body.classList.toggle('hide-nibs', hidden);
-      nibToggle.setAttribute('aria-pressed', hidden ? 'false' : 'true');
-    })();
-    nibToggle.addEventListener('click', function() {
-      const wasShown = nibToggle.getAttribute('aria-pressed') === 'true';
-      const newShown = !wasShown;
-      nibToggle.setAttribute('aria-pressed', newShown ? 'true' : 'false');
-      document.body.classList.toggle('hide-nibs', !newShown);
-      try { localStorage.setItem(NIBS_HIDDEN_KEY, !newShown ? 'true' : 'false'); } catch(e) {}
-    });
-
-    // Group toggle (Posca only — collapses 310 marker tiles to 68 colors).
-    const groupToggle = document.getElementById('groupToggle');
-    try {
-      if (localStorage.getItem(GROUP_KEY) === 'true') {
-        document.body.classList.add('group-mode');
-        groupToggle.setAttribute('aria-pressed', 'true');
-      }
-    } catch(e) {}
-    groupToggle.addEventListener('click', function() {
-      const next = groupToggle.getAttribute('aria-pressed') !== 'true';
-      groupToggle.setAttribute('aria-pressed', next ? 'true' : 'false');
-      document.body.classList.toggle('group-mode', next);
-      try { localStorage.setItem(GROUP_KEY, next ? 'true' : 'false'); } catch(e) {}
-    });
-
-    // The "All" pill at the start of each filter row toggles every sibling
-    // pill at once. Its aria-pressed mirrors "all members visible" so the
-    // user can read the row state at a glance.
-    const allNibsPill = document.querySelector('.size-pill[data-all="nibs"]');
-    const allCatsPill = document.querySelector('.size-pill[data-all="cats"]');
-
-    // Size filter pills (Posca only) — each pill toggles visibility of one
-    // nib in the spectrum's per-marker view. Pressed=true means visible.
-    const ALL_NIBS = ['1M','3M','5M','7M','8K','17K','3ML'];
-    const sizePills = Array.from(document.querySelectorAll('.size-pill[data-nib]'));
-
-    function loadHiddenNibs() {
-      try {
-        const raw = localStorage.getItem(HIDDEN_NIBS_KEY);
-        const arr = raw ? JSON.parse(raw) : [];
-        return new Set(Array.isArray(arr) ? arr : []);
-      } catch(e) { return new Set(); }
-    }
-
-    function applyHiddenNibs(set) {
-      ALL_NIBS.forEach(function(nib) {
-        document.body.classList.toggle('hide-nib-' + nib, set.has(nib));
-      });
-      sizePills.forEach(function(p) {
-        p.setAttribute('aria-pressed', set.has(p.dataset.nib) ? 'false' : 'true');
-      });
-      if (allNibsPill) {
-        allNibsPill.setAttribute('aria-pressed', set.size === 0 ? 'true' : 'false');
+        var m = localStorage.getItem(MODE_KEY);
+        return MODES.indexOf(m) !== -1 ? m : "kleur";
+      } catch (e) {
+        return "kleur";
       }
     }
 
-    function saveHiddenNibs(set) {
-      try { localStorage.setItem(HIDDEN_NIBS_KEY, JSON.stringify(Array.from(set))); } catch(e) {}
-    }
-
-    applyHiddenNibs(loadHiddenNibs());
-
-    sizePills.forEach(function(pill) {
-      pill.addEventListener('click', function() {
-        const nib = pill.dataset.nib;
-        const hidden = loadHiddenNibs();
-        if (hidden.has(nib)) hidden.delete(nib);
-        else hidden.add(nib);
-        saveHiddenNibs(hidden);
-        applyHiddenNibs(hidden);
-        checkEmptyState();
-      });
-    });
-
-    if (allNibsPill) {
-      allNibsPill.addEventListener('click', function() {
-        const hidden = loadHiddenNibs();
-        const next = hidden.size === 0 ? new Set(ALL_NIBS) : new Set();
-        saveHiddenNibs(next);
-        applyHiddenNibs(next);
-        checkEmptyState();
+    function setMode(mode) {
+      document.body.dataset.mode = mode;
+      try { localStorage.setItem(MODE_KEY, mode); } catch (e) { /* private mode */ }
+      document.querySelectorAll("[data-mode-btn]").forEach(function (btn) {
+        btn.setAttribute("aria-pressed", String(btn.dataset.modeBtn === mode));
       });
     }
 
-    // Family/category filter pills — same pattern as size pills, but
-    // toggles by color category (Posca: Standard/Pastel/...) or by color
-    // family (Copic: Y/YG/G/...). The data-cat attribute carries the same
-    // value used in body.hide-cat-X and tile data-family.
-    const ALL_CATS = currentBrand === 'posca'
-      ? ['Standard', 'Pastel', 'Fluo', 'Metallic', 'Glitter']
-      : COPIC_FAMILIES.map(function(f) { return f.code; });
-    const catPills = Array.from(document.querySelectorAll('.size-pill[data-cat]'));
-
-    function loadHiddenCats() {
-      try {
-        const raw = localStorage.getItem(HIDDEN_CATS_KEY);
-        const arr = raw ? JSON.parse(raw) : [];
-        return new Set(Array.isArray(arr) ? arr : []);
-      } catch(e) { return new Set(); }
+    function el(tag, className, text) {
+      var node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text !== undefined) node.textContent = text;
+      return node;
     }
 
-    function applyHiddenCats(set) {
-      ALL_CATS.forEach(function(cat) {
-        document.body.classList.toggle('hide-cat-' + cat, set.has(cat));
-      });
-      catPills.forEach(function(p) {
-        p.setAttribute('aria-pressed', set.has(p.dataset.cat) ? 'false' : 'true');
-      });
-      if (allCatsPill) {
-        allCatsPill.setAttribute('aria-pressed', set.size === 0 ? 'true' : 'false');
-      }
-    }
-
-    function saveHiddenCats(set) {
-      try { localStorage.setItem(HIDDEN_CATS_KEY, JSON.stringify(Array.from(set))); } catch(e) {}
-    }
-
-    applyHiddenCats(loadHiddenCats());
-
-    catPills.forEach(function(pill) {
-      pill.addEventListener('click', function() {
-        const cat = pill.dataset.cat;
-        const hidden = loadHiddenCats();
-        if (hidden.has(cat)) hidden.delete(cat);
-        else hidden.add(cat);
-        saveHiddenCats(hidden);
-        applyHiddenCats(hidden);
-        checkEmptyState();
-      });
-    });
-
-    if (allCatsPill) {
-      allCatsPill.addEventListener('click', function() {
-        const hidden = loadHiddenCats();
-        const next = hidden.size === 0 ? new Set(ALL_CATS) : new Set();
-        saveHiddenCats(next);
-        applyHiddenCats(next);
-        checkEmptyState();
+    function buildNav() {
+      var nav = document.querySelector(".sizes");
+      LINEUP.forEach(function (size) {
+        var link = document.createElement("a");
+        link.href = "#size-" + size.size;
+        link.textContent = size.size;
+        nav.appendChild(link);
       });
     }
 
-    // Search (with expand/collapse)
-    const searchWrap = document.getElementById('searchWrap');
-    const searchToggle = document.getElementById('searchToggle');
-    const searchInput = document.getElementById('searchInput');
-    const clearSearch = document.getElementById('clearSearch');
+    // Re-callable: Task 6 re-renders after toggling INVENTORY entries.
+    function render() {
+      var owned = new Set(INVENTORY);
+      var main = document.getElementById("app");
+      main.textContent = "";
 
-    function applySearch(rawQuery) {
-      const query = rawQuery.trim().toLowerCase();
-      const hasQuery = query.length > 0;
-      document.body.classList.toggle('searching', hasQuery);
-      if (!hasQuery) {
-        allTiles.forEach(function(t) { t.classList.remove('match'); });
-      } else {
-        allTiles.forEach(function(tile) {
-          const haystack = tile.dataset.search || '';
-          tile.classList.toggle('match', haystack.indexOf(query) !== -1);
+      LINEUP.forEach(function (size) {
+        var section = el("section", "size");
+        section.id = "size-" + size.size;
+
+        var ownedCount = size.colors.reduce(function (acc, c) {
+          return acc + (owned.has(c.key) ? 1 : 0);
+        }, 0);
+
+        var head = el("div", "size-head");
+        var code = el("h2", "size-code", size.label);
+        var count = el("span", "size-count", ownedCount + " van " + size.colors.length);
+        head.appendChild(code);
+        head.appendChild(count);
+        section.appendChild(head);
+        section.appendChild(el("p", "size-tip", size.tip));
+
+        var fill = el("div", "size-fill");
+        var fillBar = el("i");
+        fillBar.style.width = (100 * ownedCount / size.colors.length) + "%";
+        fill.appendChild(fillBar);
+        section.appendChild(fill);
+
+        CATEGORY_ORDER.forEach(function (category) {
+          var colors = size.colors
+            .filter(function (c) { return c.category === category; })
+            .sort(function (a, b) { return spectrumKey(a.hex) - spectrumKey(b.hex); });
+          if (colors.length === 0) return;
+
+          section.appendChild(el("h3", "cat-label", category));
+          var grid = el("div", "grid");
+
+          colors.forEach(function (color) {
+            var isOwned = owned.has(color.key);
+            var sw = el("div", "sw " + (isOwned ? "owned" : "missing"));
+            sw.dataset.key = color.key;
+            sw.title = color.name + (color.number !== null ? " (" + color.number + ")" : "");
+            sw.style.setProperty("--c", color.hex);
+
+            sw.appendChild(el("div", "chip"));
+
+            var num = el("div", "sw-num" + (color.number === null ? " num-unknown" : ""),
+                         color.number === null ? "?" : color.number);
+            sw.appendChild(num);
+
+            var name = el("div", "sw-name", color.name);
+            name.dataset.full = color.name;
+            sw.appendChild(name);
+
+            grid.appendChild(sw);
+          });
+
+          section.appendChild(grid);
         });
-      }
-      checkEmptyState();
+
+        main.appendChild(section);
+      });
     }
 
-    function openSearch() {
-      searchWrap.dataset.open = 'true';
-      searchToggle.setAttribute('aria-expanded', 'true');
-      setTimeout(function() { searchInput.focus(); }, 50);
-    }
-
-    function closeSearch() {
-      searchWrap.dataset.open = 'false';
-      searchToggle.setAttribute('aria-expanded', 'false');
-      searchInput.value = '';
-      applySearch('');
-    }
-
-    searchToggle.addEventListener('click', openSearch);
-    clearSearch.addEventListener('click', closeSearch);
-
-    document.addEventListener('click', function(e) {
-      if (searchWrap.dataset.open !== 'true') return;
-      if (searchWrap.contains(e.target)) return;
-      closeSearch();
+    document.querySelectorAll("[data-mode-btn]").forEach(function (btn) {
+      btn.addEventListener("click", function () { setMode(btn.dataset.modeBtn); });
     });
 
-    let searchDebounce;
-    searchInput.addEventListener('input', function() {
-      clearTimeout(searchDebounce);
-      searchDebounce = setTimeout(function() { applySearch(searchInput.value); }, 60);
-    });
-
-    searchInput.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') {
-        const firstMatch = document.querySelector('.carousel-slide.active .swatch.match, .carousel-slide.active .mini.match');
-        if (firstMatch) {
-          // iOS Safari handles 'smooth' poorly; check support first
-          const supportsSmooth = 'scrollBehavior' in document.documentElement.style;
-          firstMatch.scrollIntoView({ behavior: supportsSmooth ? 'smooth' : 'auto', block: 'center' });
-        }
-      }
-    });
-
-    // Carousel
-    const carouselTrack = document.getElementById('carouselTrack');
-    const carouselSlides = Array.from(carouselTrack.querySelectorAll('.carousel-slide'));
-    const carouselTitle = document.getElementById('carouselTitle');
-    const prevFamilyBtn = document.getElementById('prevFamily');
-    const nextFamilyBtn = document.getElementById('nextFamily');
-    const chips = Array.from(document.querySelectorAll('.chip[data-jump]'));
-
-    let currentSlide = 0;
-    let slideAnimRaf = null;
-
-    function gotoSlide(index) {
-      const len = carouselSlides.length;
-      const wrapped = ((index % len) + len) % len;
-      currentSlide = wrapped;
-
-      // Enable GPU promotion only during the animation, then release it
-      carouselTrack.style.willChange = 'transform';
-      carouselTrack.style.transform = 'translateX(-' + (wrapped * 100) + '%)';
-      if (slideAnimRaf) clearTimeout(slideAnimRaf);
-      slideAnimRaf = setTimeout(function() {
-        carouselTrack.style.willChange = 'auto';
-      }, 400);
-
-      carouselSlides.forEach(function(s, i) {
-        const active = i === wrapped;
-        s.classList.toggle('active', active);
-        // `inert` removes off-screen slides from tab order and the a11y tree,
-        // which fixes axe `aria-hidden-focus` and the long Tab-walk on load.
-        if (active) s.removeAttribute('inert');
-        else s.setAttribute('inert', '');
-      });
-      const slide = carouselSlides[wrapped];
-      carouselTitle.textContent = slide.dataset.familyName || 'All';
-      refreshCarouselMeta();
-      const slideId = slide.id;
-      const targetJump = slideId === 'spectrum' ? 'spectrum' : slideId;
-      chips.forEach(function(chip) {
-        chip.classList.toggle('active', chip.dataset.jump === targetJump);
-      });
-      try { localStorage.setItem(SLIDE_KEY, String(wrapped)); } catch(e) {}
-    }
-
-    prevFamilyBtn.addEventListener('click', function() { gotoSlide(currentSlide - 1); });
-    nextFamilyBtn.addEventListener('click', function() { gotoSlide(currentSlide + 1); });
-
-    chips.forEach(function(chip) {
-      chip.addEventListener('click', function() {
-        const target = chip.dataset.jump;
-        let idx;
-        if (target === 'spectrum') idx = 0;
-        else {
-          const familyCode = target.replace(/^family-/, '');
-          idx = carouselSlides.findIndex(function(s) { return s.dataset.family === familyCode; });
-        }
-        if (idx >= 0) gotoSlide(idx);
-      });
-    });
-
-    // Restore last-used view filter and family slide on load
-    let initialSlide = 0;
-    try {
-      const savedFilter = localStorage.getItem(FILTER_KEY);
-      if (savedFilter === 'owned' || savedFilter === 'missing') {
-        document.body.setAttribute('data-filter', savedFilter);
-        filterBtns.forEach(function(b) {
-          b.classList.toggle('active', b.dataset.filter === savedFilter);
-        });
-      }
-      const savedSlide = parseInt(localStorage.getItem(SLIDE_KEY), 10);
-      if (!isNaN(savedSlide) && savedSlide >= 0 && savedSlide < carouselSlides.length) {
-        initialSlide = savedSlide;
-      }
-    } catch(e) {}
-    gotoSlide(initialSlide);
-
-    // Brand switcher (top header bar, not in toolbar)
-    const brandBtns = document.querySelectorAll('.brand-tab[data-brand]');
-    brandBtns.forEach(function(btn) {
-      btn.setAttribute('aria-pressed', btn.dataset.brand === currentBrand ? 'true' : 'false');
-      if (btn.dataset.brand === currentBrand) btn.classList.add('active');
-      btn.addEventListener('click', function() {
-        const newBrand = btn.dataset.brand;
-        if (newBrand === currentBrand) return;
-        try { localStorage.setItem(BRAND_KEY, newBrand); } catch(e) {}
-        window.location.reload();
-      });
-    });
-
-    // Scroll-to-top
-    const scrollTopBtn = document.getElementById('scrollTop');
-    function updateScrollTop() {
-      const visible = window.scrollY > 400;
-      scrollTopBtn.classList.toggle('visible', visible);
-      document.body.classList.toggle('has-scroll-top', visible);
-    }
-    let scrollRaf;
-    window.addEventListener('scroll', function() {
-      if (scrollRaf) return;
-      scrollRaf = requestAnimationFrame(function() {
-        updateScrollTop();
-        scrollRaf = null;
-      });
-    }, { passive: true });
-    scrollTopBtn.addEventListener('click', function() {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-
-    // Keyboard shortcuts
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape' && searchWrap.dataset.open === 'true') {
-        e.preventDefault();
-        closeSearch();
-        return;
-      }
-      if (e.target.matches('input, textarea')) return;
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
-
-      if (e.key === '/') {
-        e.preventDefault();
-        openSearch();
-      } else if (e.key === '1') {
-        document.querySelector('.filter-pill[data-filter="all"]').click();
-      } else if (e.key === '2') {
-        document.querySelector('.filter-pill[data-filter="owned"]').click();
-      } else if (e.key === '3') {
-        document.querySelector('.filter-pill[data-filter="missing"]').click();
-      } else if (e.key === 'ArrowLeft') {
-        gotoSlide(currentSlide - 1);
-      } else if (e.key === 'ArrowRight') {
-        gotoSlide(currentSlide + 1);
-      } else if (e.key === 'c' || e.key === 'C') {
-        codeToggle.click();
-      } else if ((e.key === 'n' || e.key === 'N') && currentBrand === 'posca') {
-        nibToggle.click();
-      } else if ((e.key === 'g' || e.key === 'G') && currentBrand === 'posca') {
-        groupToggle.click();
-      } else if (e.key === 't' || e.key === 'T') {
-        themeBtn.click();
-      }
-    });
-
-    // Init
-    initTheme();
-    loadOwned();
-    updateStats();
-  })();
-</script>
-
+    setMode(getStoredMode());
+    buildNav();
+    render();
+  </script>
 </body>
 </html>
