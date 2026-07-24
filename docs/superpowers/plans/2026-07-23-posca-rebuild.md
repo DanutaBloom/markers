@@ -443,3 +443,14 @@ Decisions: legacy-map is NOT a verification source (it partly derives from PoscA
 
 - Polish pass on the real page with impeccable + design-taste-frontend (both themes, 390x844), regression re-run, commit.
 - Push; verify live (index + lineup.js + inventory.js 200, spot-check dark mode markup present).
+
+---
+
+## Round 3 (user feedback 2026-07-24)
+
+### Task N1: Third source for Black/White (and other nulls where possible)
+Find and save a THIRD independent source (independent of PoscART, Jenny's Crayon Collection, and the old page) listing Posca cap numbers. Rule unchanged: a number is verified when two independent saved sources agree. With three sources, any agreeing pair counts; a 2-vs-1 split resolves to the majority pair, documented. Apply to all currently-null names (Black, White, Coral, Grape Green, Yellow Fluo, Pale Fluorescent Orange, the 3M Brown duplicate, Glacier Blue's number). Regenerate lineup.js via build-lineup.py; checks stay green; provenance in report.
+
+### Task N2: Control redesign for consistency
+User feedback: (a) label modes are still either/or — "why not both"; Color mode shows nothing extra, then Number OR Name. Redesign: swatch always; Number and Name become independently toggleable (both on = number + name visible). Grid geometry stays constant in ALL combinations (reserve label space accordingly). (b) Theme switcher in the footer feels odd — relocate sensibly (header area or another consistent place), keep Auto/Light/Dark semantics + persistence. (c) "Copy inventory.js" button copy is jargon — rename to plain language describing the action; confirmation copy consistent. Overall: one coherent control language (same component style for all controls).
+Mandatory: load `impeccable`, `ui-ux-pro-max` AND `frontend-design:frontend-design` via Skill tool before code; use sequential-thinking MCP for the control-model reasoning and Context7 for any web-platform API doubt; verify with playwright-cli (regression set + zero layout shift across ALL label combinations + theme matrix). Only index.html changes; DOM contract: data-key/owned/missing/size-<SIZE>/.size-count stay; body[data-mode] may become two data attributes (update all references + localStorage migration incl. round-2 values).
