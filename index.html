@@ -39,7 +39,7 @@
     --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
     /* 4px spacing scale */
     --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s6: 24px; --s8: 32px;
-    /* Measured sticky-bar height (bar-top 56 + actions 52 + sizes 60 + border)
+    /* Measured sticky-bar height (165px: bar-top + actions + sizes + border)
        plus a little air, so size jumps land headings below the bar. */
     --bar-h: 172px;
   }
@@ -75,7 +75,9 @@
     -webkit-text-size-adjust: 100%;
   }
 
-  /* Sticky bar: title + label-mode toggle, then size jump pills */
+  /* Sticky bar, three rows: title + theme, label toggles + copy action,
+     size jump pills. Ordered by how often each row is touched in-store:
+     size jumps sit closest to the grid, theme (set-once) farthest. */
   .bar {
     position: sticky;
     top: 0;
@@ -108,14 +110,21 @@
     margin-right: var(--s2);
   }
 
-  .mode {
+  /* Control language: every control in the bar shares one vocabulary.
+     - metrics: 44px min touch height, 13px/600 sans, 150ms state transitions
+     - "on" state: ink background + paper text, identical everywhere
+     - shapes: .seg = one-of-N segmented group (theme); .toggle = independent
+       on/off chip (Number, Name); .copy-btn = plain action; .sizes a = link
+     All pill-radius, all same border weight, so the whole bar reads as one
+     instrument panel instead of three unrelated widgets. */
+  .seg {
     display: flex;
     gap: 2px;
     background: var(--wash);
-    border-radius: 10px;
+    border-radius: 999px;
     padding: 2px;
   }
-  .mode button {
+  .seg button {
     appearance: none;
     border: 0;
     margin: 0;
@@ -123,17 +132,37 @@
     color: var(--muted);
     font: 600 13px/1 var(--sans);
     padding: 0 var(--s3);
-    min-height: 44px;
+    min-height: 40px;
     min-width: 44px;
-    border-radius: 8px;
+    border-radius: 999px;
     cursor: pointer;
     transition: background-color 150ms, color 150ms;
   }
-  .mode button[aria-pressed="true"] {
+  .seg button[aria-pressed="true"] {
     background: var(--ink);
     color: var(--paper);
   }
-  .mode button:focus-visible,
+  .toggle {
+    appearance: none;
+    margin: 0;
+    background: var(--paper);
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    color: var(--muted);
+    font: 600 13px/1 var(--sans);
+    padding: 0 var(--s3);
+    min-height: 44px;
+    min-width: 44px;
+    cursor: pointer;
+    transition: background-color 150ms, color 150ms, border-color 150ms;
+  }
+  .toggle[aria-pressed="true"] {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--paper);
+  }
+  .seg button:focus-visible,
+  .toggle:focus-visible,
   .sizes a:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
@@ -170,10 +199,11 @@
     gap: var(--s3);
     padding: 0 var(--s4) var(--s2);
   }
-  .bar-actions-left {
+  .bar-actions-left,
+  .bar-actions-right {
     display: flex;
     align-items: center;
-    gap: var(--s3);
+    gap: var(--s2);
   }
   .copy-btn {
     appearance: none;
@@ -194,10 +224,23 @@
     outline: 2px solid var(--accent);
     outline-offset: 2px;
   }
+  /* Status floats below the bar so a message never reflows the sticky rows
+     (a transient "List copied" must not push the size nav around). */
   .copy-status {
-    font: 500 13px/1.2 var(--sans);
-    color: var(--muted);
+    position: absolute;
+    top: calc(100% + var(--s2));
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: calc(100vw - 2 * var(--s4));
+    padding: var(--s2) var(--s3);
+    background: var(--wash);
+    border: 1px solid var(--hairline);
+    border-radius: 18px;
+    font: 500 13px/1.3 var(--sans);
+    color: var(--ink);
+    text-align: center;
   }
+  .copy-status:empty { display: none; }
   .dirty {
     display: inline-flex;
     align-items: center;
@@ -260,8 +303,9 @@
     color: var(--muted);
   }
 
-  /* Swatch grid: ONE geometry for all label modes. Switching Color/Number/
-     Name only changes what the fixed label row shows; nothing reflows. */
+  /* Swatch grid: ONE geometry for all four label combinations. Toggling
+     Number/Name only changes what the fixed label area shows; nothing
+     reflows. */
   .grid {
     display: grid;
     gap: 6px;
@@ -311,10 +355,11 @@
     box-shadow: none;
   }
 
-  /* Fixed-height label row: reserved in every mode (empty in Color mode) so
-     the toggle never shifts layout. */
+  /* Fixed-height label area: sized for the worst case (number line 14px +
+     name line 15px) and reserved in ALL four toggle combinations, so turning
+     Number or Name on or off never shifts the grid. */
   .sw-label {
-    height: 15px;
+    height: 29px;
     margin-top: 3px;
     overflow: hidden;
   }
@@ -325,10 +370,10 @@
   }
   .sw.missing .sw-num,
   .sw.missing .sw-name { color: var(--muted); }
-  body[data-mode="number"] .sw-num { display: block; }
-  body[data-mode="name"] .sw-name { display: block; }
+  body[data-show-number] .sw-num { display: block; }
+  body[data-show-name] .sw-name { display: block; }
   .sw-num {
-    font: 500 11px/1.2 var(--mono);
+    font: 500 11px/14px var(--mono);
     font-variant-numeric: tabular-nums;
   }
   .sw-num.num-unknown {
@@ -338,25 +383,10 @@
   }
   .sw-name {
     font-size: 11px;
-    line-height: 1.3;
+    line-height: 15px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-  }
-
-  /* Footer: theme override. A set-once preference, so it lives out of the
-     sticky bar's way. */
-  .foot {
-    display: flex;
-    align-items: center;
-    gap: var(--s3);
-    max-width: 720px;
-    margin: 0 auto;
-    padding: 0 var(--s4) var(--s8);
-  }
-  .foot-label {
-    font: 600 12px/1 var(--sans);
-    color: var(--muted);
   }
 </style>
 <script>
@@ -369,36 +399,31 @@
   } catch (e) { /* private mode */ }
 </script>
 </head>
-<body data-mode="color">
+<body>
   <header class="bar">
     <div class="bar-top">
       <h1>Posca inventory</h1>
-      <div class="mode" role="group" aria-label="Label display">
-        <button type="button" data-mode-btn="color" aria-pressed="true">Color</button>
-        <button type="button" data-mode-btn="number" aria-pressed="false">Number</button>
-        <button type="button" data-mode-btn="name" aria-pressed="false">Name</button>
+      <div class="seg" role="group" aria-label="Theme">
+        <button type="button" data-theme-btn="auto" aria-pressed="true">Auto</button>
+        <button type="button" data-theme-btn="light" aria-pressed="false">Light</button>
+        <button type="button" data-theme-btn="dark" aria-pressed="false">Dark</button>
       </div>
     </div>
     <div class="bar-actions">
-      <div class="bar-actions-left">
-        <button type="button" id="copy-btn" class="copy-btn">Copy inventory.js</button>
-        <span id="copy-status" class="copy-status" aria-live="polite"></span>
+      <div class="bar-actions-left" role="group" aria-label="Swatch labels">
+        <button type="button" class="toggle" data-label-btn="number" aria-pressed="false">Number</button>
+        <button type="button" class="toggle" data-label-btn="name" aria-pressed="false">Name</button>
       </div>
-      <span id="dirty-indicator" class="dirty" hidden>unsaved changes</span>
+      <div class="bar-actions-right">
+        <span id="dirty-indicator" class="dirty" hidden>not saved</span>
+        <button type="button" id="copy-btn" class="copy-btn">Copy updated list</button>
+      </div>
     </div>
     <nav class="sizes" aria-label="Jump to size"></nav>
+    <span id="copy-status" class="copy-status" aria-live="polite"></span>
   </header>
 
   <main id="app"></main>
-
-  <footer class="foot">
-    <span class="foot-label" id="theme-label">Theme</span>
-    <div class="mode" role="group" aria-labelledby="theme-label">
-      <button type="button" data-theme-btn="auto" aria-pressed="true">Auto</button>
-      <button type="button" data-theme-btn="light" aria-pressed="false">Light</button>
-      <button type="button" data-theme-btn="dark" aria-pressed="false">Dark</button>
-    </div>
-  </footer>
 
   <script src="lineup.js"></script>
   <script src="inventory.js"></script>
@@ -406,9 +431,13 @@
     "use strict";
 
     var CATEGORY_ORDER = ["Standard", "Pastel", "Fluo", "Metallic", "Glitter"];
-    var MODES = ["color", "number", "name"];
-    var LEGACY_MODES = { kleur: "color", nummer: "number", naam: "name" };
-    var MODE_KEY = "posca-label-mode";
+    var LABELS_KEY = "posca-labels";
+    var LEGACY_LABELS_KEY = "posca-label-mode";  // round-1/2 single-mode value
+    var LEGACY_LABEL_MAP = {
+      color: { number: false, name: false }, kleur: { number: false, name: false },
+      number: { number: true, name: false }, nummer: { number: true, name: false },
+      name: { number: false, name: true }, naam: { number: false, name: true }
+    };
     var THEMES = ["auto", "light", "dark"];
     var THEME_KEY = "posca-theme";
     var LS_KEY = "posca-inventory-local";
@@ -508,13 +537,13 @@
     function copyInventory() {
       var text = generateInventoryJs();
       if (!navigator.clipboard || !navigator.clipboard.writeText) {
-        showCopyStatus("Copying needs a secure context (open via file:// or localhost).", 4000);
+        showCopyStatus("Copying is blocked here. Open the page locally or over https.", 4000);
         return;
       }
       navigator.clipboard.writeText(text).then(function () {
-        showCopyStatus("Copied", 2000);
+        showCopyStatus("List copied. Paste it over inventory.js at home.", 3000);
       }, function () {
-        showCopyStatus("Copy failed.", 4000);
+        showCopyStatus("Copy failed. Try again.", 4000);
       });
     }
 
@@ -535,22 +564,49 @@
       return s < 0.12 ? l : 1 + h;  // greys/browns first by lightness, then hue
     }
 
-    function getStoredMode() {
+    // Labels are two independent booleans (Number, Name). Stored as JSON under
+    // LABELS_KEY; a round-1/2 single-mode value migrates once and is removed.
+    // Anything unreadable falls back to both off (pure color grid).
+    function getStoredLabels() {
+      var off = { number: false, name: false };
       try {
-        var m = localStorage.getItem(MODE_KEY);
-        if (LEGACY_MODES[m]) return LEGACY_MODES[m];   // pre-English stored value
-        return MODES.indexOf(m) !== -1 ? m : "color";
+        var raw = localStorage.getItem(LABELS_KEY);
+        if (raw !== null) {
+          var parsed = JSON.parse(raw);
+          if (parsed && typeof parsed.number === "boolean" && typeof parsed.name === "boolean") {
+            return { number: parsed.number, name: parsed.name };
+          }
+          return off;
+        }
+        var legacy = LEGACY_LABEL_MAP[localStorage.getItem(LEGACY_LABELS_KEY)];
+        localStorage.removeItem(LEGACY_LABELS_KEY);
+        if (legacy) {
+          localStorage.setItem(LABELS_KEY, JSON.stringify(legacy));
+          return legacy;
+        }
+        return off;
       } catch (e) {
-        return "color";
+        return off;
       }
     }
 
-    function setMode(mode) {
-      document.body.dataset.mode = mode;
-      try { localStorage.setItem(MODE_KEY, mode); } catch (e) { /* private mode */ }
-      document.querySelectorAll("[data-mode-btn]").forEach(function (btn) {
-        btn.setAttribute("aria-pressed", String(btn.dataset.modeBtn === mode));
+    function setLabels(labels) {
+      if (labels.number) document.body.dataset.showNumber = "";
+      else delete document.body.dataset.showNumber;
+      if (labels.name) document.body.dataset.showName = "";
+      else delete document.body.dataset.showName;
+      try { localStorage.setItem(LABELS_KEY, JSON.stringify(labels)); }
+      catch (e) { /* private mode */ }
+      document.querySelectorAll("[data-label-btn]").forEach(function (btn) {
+        btn.setAttribute("aria-pressed", String(labels[btn.dataset.labelBtn]));
       });
+    }
+
+    function currentLabels() {
+      return {
+        number: document.body.dataset.showNumber !== undefined,
+        name: document.body.dataset.showName !== undefined
+      };
     }
 
     function getStoredTheme() {
@@ -656,15 +712,19 @@
       updateDirtyIndicator();
     }
 
-    document.querySelectorAll("[data-mode-btn]").forEach(function (btn) {
-      btn.addEventListener("click", function () { setMode(btn.dataset.modeBtn); });
+    document.querySelectorAll("[data-label-btn]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var labels = currentLabels();
+        labels[btn.dataset.labelBtn] = !labels[btn.dataset.labelBtn];
+        setLabels(labels);
+      });
     });
     document.querySelectorAll("[data-theme-btn]").forEach(function (btn) {
       btn.addEventListener("click", function () { setTheme(btn.dataset.themeBtn); });
     });
     document.getElementById("copy-btn").addEventListener("click", copyInventory);
 
-    setMode(getStoredMode());
+    setLabels(getStoredLabels());
     setTheme(getStoredTheme());
     buildNav();
     cleanStaleOverlay();
