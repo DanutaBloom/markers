@@ -2,6 +2,11 @@
 // carry an ordinal suffix like "3M:Brown-2").
 // Updated by tapping in the page (copy button) or via Claude Code.
 const INVENTORY = [
+  "1MC:Apple Green",
+  "1MC:Aqua Green",
+  "1MC:Coral Pink",
+  "1MC:Orange",
+  "1MC:Sky Blue",
   "3M:Apricot",
   "3M:Beige",
   "3M:Black",

@@ -6,7 +6,7 @@ lineup = json.loads(payload)  # generator must emit JSON-compatible literals
 sizes = [s['size'] for s in lineup]
 assert sizes == ['1MR', '1MC', '3M', '5M', '5BR', '7M', '8K', '17K', 'F350'], sizes
 counts = {s['size']: len(s['colors']) for s in lineup}
-assert counts == {'1MR': 21, '1MC': 25, '3M': 42, '5M': 50, '5BR': 16,
+assert counts == {'1MR': 21, '1MC': 30, '3M': 45, '5M': 50, '5BR': 16,
                   '7M': 15, '8K': 33, '17K': 10, 'F350': 10}, counts
 cats = {'Standard', 'Pastel', 'Fluo', 'Metallic', 'Glitter'}
 all_keys = [c['key'] for s in lineup for c in s['colors']]

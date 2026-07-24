@@ -95,6 +95,17 @@ EXTRA_COLORS = {
         ('Orange', '#ff5c39'),      # both saved sources list PC-3M Orange
                                     # (Jenny's Crayon Collection, mpuni.co.jp)
     ],
+    # posca.com's PC-1MC page misses the same newer colors as PC-3M did.
+    # mpuni.co.jp lists the series as "PC-1M" (order codes PC1M.x) — same
+    # series, EU naming PC-1MC; barrel print says PC-1M.
+    '1MC': [
+        ('Orange', '#ff5c39'),      # physical (owner, 2026-07-24) + mpuni
+                                    # PC1M.4 + Jenny's Crayon Collection
+        ('Sky Blue', '#009cde'),    # physical cap 48 + mpuni PC1M.48
+        ('Coral Pink', '#ff8da1'),  # physical cap 66 + mpuni PC1M.66
+        ('Aqua Green', '#71dbd4'),  # physical cap (owner, 2026-07-24): P6
+        ('Apple Green', '#78be21'), # physical cap (owner, 2026-07-24): 72
+    ],
 }
 
 def category(name, number):
