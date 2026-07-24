@@ -15,7 +15,7 @@ const LINEUP = [
    {
     "key": "1MR:Black",
     "name": "Black",
-    "number": null,
+    "number": "24",
     "hex": "#2d2926",
     "category": "Standard"
    },
@@ -141,7 +141,7 @@ const LINEUP = [
    {
     "key": "1MR:White",
     "name": "White",
-    "number": null,
+    "number": "1",
     "hex": "#ffffff",
     "category": "Standard"
    },
@@ -176,7 +176,7 @@ const LINEUP = [
    {
     "key": "1MC:Black",
     "name": "Black",
-    "number": null,
+    "number": "24",
     "hex": "#2d2926",
     "category": "Standard"
    },
@@ -323,7 +323,7 @@ const LINEUP = [
    {
     "key": "1MC:White",
     "name": "White",
-    "number": null,
+    "number": "1",
     "hex": "#ffffff",
     "category": "Standard"
    },
@@ -365,7 +365,7 @@ const LINEUP = [
    {
     "key": "3M:Black",
     "name": "Black",
-    "number": null,
+    "number": "24",
     "hex": "#2d2926",
     "category": "Standard"
    },
@@ -624,7 +624,7 @@ const LINEUP = [
    {
     "key": "3M:White",
     "name": "White",
-    "number": null,
+    "number": "1",
     "hex": "#ffffff",
     "category": "Standard"
    },
@@ -673,7 +673,7 @@ const LINEUP = [
    {
     "key": "5M:Black",
     "name": "Black",
-    "number": null,
+    "number": "24",
     "hex": "#2d2926",
     "category": "Standard"
    },
@@ -974,7 +974,7 @@ const LINEUP = [
    {
     "key": "5M:White",
     "name": "White",
-    "number": null,
+    "number": "1",
     "hex": "#ffffff",
     "category": "Standard"
    },
@@ -1009,7 +1009,7 @@ const LINEUP = [
    {
     "key": "5BR:Black",
     "name": "Black",
-    "number": null,
+    "number": "24",
     "hex": "#2d2926",
     "category": "Standard"
    },
@@ -1100,7 +1100,7 @@ const LINEUP = [
    {
     "key": "5BR:White",
     "name": "White",
-    "number": null,
+    "number": "1",
     "hex": "#ffffff",
     "category": "Standard"
    },
@@ -1121,7 +1121,7 @@ const LINEUP = [
    {
     "key": "7M:Black",
     "name": "Black",
-    "number": null,
+    "number": "24",
     "hex": "#2d2926",
     "category": "Standard"
    },
@@ -1212,7 +1212,7 @@ const LINEUP = [
    {
     "key": "7M:White",
     "name": "White",
-    "number": null,
+    "number": "1",
     "hex": "#ffffff",
     "category": "Standard"
    },
@@ -1240,7 +1240,7 @@ const LINEUP = [
    {
     "key": "8K:Black",
     "name": "Black",
-    "number": null,
+    "number": "24",
     "hex": "#2d2926",
     "category": "Standard"
    },
@@ -1450,7 +1450,7 @@ const LINEUP = [
    {
     "key": "8K:White",
     "name": "White",
-    "number": null,
+    "number": "1",
     "hex": "#ffffff",
     "category": "Standard"
    },
@@ -1471,7 +1471,7 @@ const LINEUP = [
    {
     "key": "17K:Black",
     "name": "Black",
-    "number": null,
+    "number": "24",
     "hex": "#2d2926",
     "category": "Standard"
    },
@@ -1527,7 +1527,7 @@ const LINEUP = [
    {
     "key": "17K:White",
     "name": "White",
-    "number": null,
+    "number": "1",
     "hex": "#ffffff",
     "category": "Standard"
    },
@@ -1548,7 +1548,7 @@ const LINEUP = [
    {
     "key": "F350:Black",
     "name": "Black",
-    "number": null,
+    "number": "24",
     "hex": "#2d2926",
     "category": "Standard"
    },
@@ -1604,7 +1604,7 @@ const LINEUP = [
    {
     "key": "F350:White",
     "name": "White",
-    "number": null,
+    "number": "1",
     "hex": "#ffffff",
     "category": "Standard"
    },

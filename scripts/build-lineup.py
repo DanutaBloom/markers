@@ -48,14 +48,31 @@ def normalize_name(name):
 #     infographic (all 65 non-UK colors) doesn't carry it individually.
 #   Both sources -> Pastel.
 #
-# Checked and REJECTED (fallback Standard stands, no override written):
-#   - Coral (5M, 5BR): both sources only have "Coral Pink" (#66, plain
-#     number = Standard in both) — no non-Standard agreement either way.
-#   - Grape Green (5M): absent from both sources entirely.
-#   - Black: absent from second-source.html; Jenny's infographic has it
-#     plain (#24, Standard) — only one source has data.
-#   - White: plain in both sources (#255 second-source, #1 Jenny's) —
-#     both agree, but the agreed category is Standard, so no override.
+# Round 3 (2026-07-24) added a third independent source — scripts/
+# source-mpuni-pc{1m,3m,5m,8k,17k}.html (mpuni.co.jp, Mitsubishi Pencil's
+# official Japan site; product listings give each color's PC-<size>.<number>
+# code, e.g. "黒" (Black) = PC5M.24 on all five size pages). It resolved
+# Black -> 24 and White -> 1 (both plain numbers, so no CATEGORY_OVERRIDES
+# entry — category() derives Standard from the numeric prefix directly).
+# White is a 2-vs-1 split: mpuni + Jenny's agree on 1; second-source.html's
+# 255 is outvoted (see .superpowers/sdd/task-N1-report.md).
+#
+# Checked and still REJECTED after the third source (fallback Standard
+# stands, no override written; numbers also stay null — see check-lineup.py
+# output):
+#   - Coral (5M, 5BR): all three sources only have "Coral Pink" (#66) —
+#     never bare "Coral" (posca.com's scrape name). Per the R1 conservative
+#     rule (name-or-hex-paired matches only), a name mismatch doesn't
+#     verify the number even with three-way hex agreement.
+#   - Grape Green (5M), Yellow Fluo (5M), Pale Fluorescent Orange (8K):
+#     absent from mpuni.co.jp entirely (no Fluorescent-series page exists
+#     on the JP site) and from second-source.html.
+#   - Glacier Blue (1MR): absent from mpuni.co.jp (JP pastels are only
+#     P2/P4/P6/P11) — still single-source (second-source.html P33).
+#   - 3M "Brown" 2nd occurrence (hex #572d2d): mpuni's PC-3M page lists
+#     only one Brown (茶 = PC3M.21, no ダークブラウン/Dark Brown entry) —
+#     doesn't satisfy "a saved source explicitly lists the 3M range with
+#     both entries identified." Only Jenny's does; stays single-source.
 CATEGORY_OVERRIDES = {
     'glacier blue': 'Pastel',
 }
