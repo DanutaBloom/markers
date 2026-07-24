@@ -541,7 +541,7 @@
         return;
       }
       navigator.clipboard.writeText(text).then(function () {
-        showCopyStatus("List copied. Paste it over inventory.js at home.", 3000);
+        showCopyStatus("List copied. Paste it over the old list at home.", 3000);
       }, function () {
         showCopyStatus("Copy failed. Try again.", 4000);
       });
