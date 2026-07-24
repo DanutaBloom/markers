@@ -80,9 +80,10 @@
     -webkit-text-size-adjust: 100%;
   }
 
-  /* Sticky bar, three rows: title + theme, label toggles + copy action,
-     size jump pills. Ordered by how often each row is touched in-store:
-     size jumps sit closest to the grid, theme (set-once) farthest. */
+  /* Sticky bar, three rows: title + rare actions (copy, theme), grid display
+     controls (label toggles + ownership filter), size jump pills. Ordered by
+     how often each row is touched in-store: size jumps sit closest to the
+     grid, set-once/at-home actions farthest. */
   .bar {
     position: sticky;
     top: 0;
@@ -103,6 +104,12 @@
     font-weight: 700;
     letter-spacing: -0.01em;
     white-space: nowrap;
+  }
+  .bar-top-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    flex-shrink: 0;
   }
   .bar h1::before {
     content: "";
@@ -170,6 +177,49 @@
   .icon-btn[data-mode="dark"] .ic-dark { display: block; }
   .icon-btn:active,
   .toggle:not([aria-pressed="true"]):active { background: var(--wash); }
+  /* Ownership filter: one segmented pill in the same control vocabulary
+     (36px visual, 13px/600, idle paper + ink, active ink + paper). All three
+     states stay visible and any state is one tap away (a cycling button
+     would hide two states and cost up to two taps in-store). Not persisted
+     by design: every load starts at All. Segments expand their hit area
+     vertically only, so adjacent segments never share a tap zone. */
+  .seg {
+    display: inline-flex;
+    background: var(--paper);
+    border: 1px solid var(--edge);
+    border-radius: 999px;
+    flex-shrink: 0;
+  }
+  .seg-btn {
+    position: relative;
+    appearance: none;
+    margin: 0;
+    padding: 0 var(--s3);
+    border: 0;
+    background: none;
+    color: var(--ink);
+    font: 600 13px/1 var(--sans);
+    min-height: 34px;
+    cursor: pointer;
+    transition: background-color 150ms, color 150ms;
+  }
+  .seg-btn::before {
+    content: "";
+    position: absolute;
+    inset: -5px 0;
+  }
+  .seg-btn:first-child { border-radius: 999px 0 0 999px; }
+  .seg-btn:last-child { border-radius: 0 999px 999px 0; }
+  .seg-btn + .seg-btn { border-left: 1px solid var(--edge); }
+  .seg-btn[aria-pressed="true"] {
+    background: var(--ink);
+    color: var(--paper);
+  }
+  .seg-btn:not([aria-pressed="true"]):active { background: var(--wash); }
+  .seg-btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
   .icon-btn:focus-visible,
   .toggle:focus-visible,
   .sizes a:focus-visible {
@@ -410,6 +460,8 @@
   <header class="bar">
     <div class="bar-top">
       <h1>Posca inventory</h1>
+      <div class="bar-top-actions">
+      <button type="button" id="copy-btn" class="copy-btn">Copy updated list</button>
       <button type="button" id="theme-btn" class="icon-btn" data-mode="auto">
         <svg class="ic-auto" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <circle cx="12" cy="12" r="9"></circle>
@@ -423,13 +475,18 @@
           <path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11z"></path>
         </svg>
       </button>
+      </div>
     </div>
     <div class="bar-actions">
       <div class="bar-actions-left" role="group" aria-label="Swatch labels">
         <button type="button" class="toggle" data-label-btn="number" aria-pressed="false">Number</button>
         <button type="button" class="toggle" data-label-btn="name" aria-pressed="false">Name</button>
       </div>
-      <button type="button" id="copy-btn" class="copy-btn">Copy updated list</button>
+      <div class="seg" role="group" aria-label="Filter by ownership">
+        <button type="button" class="seg-btn" data-filter-btn="all" aria-pressed="true">All</button>
+        <button type="button" class="seg-btn" data-filter-btn="owned" aria-pressed="false">Owned</button>
+        <button type="button" class="seg-btn" data-filter-btn="missing" aria-pressed="false">Missing</button>
+      </div>
     </div>
     <nav class="sizes" aria-label="Jump to size"></nav>
     <span id="copy-status" class="copy-status" aria-live="polite"></span>
@@ -451,6 +508,10 @@
       name: { number: false, name: true }, naam: { number: false, name: true }
     };
     var THEMES = ["auto", "light", "dark"];
+    // In-store quick filter over ownership. Deliberately not persisted:
+    // every load starts at "all".
+    var OWN_FILTERS = ["all", "owned", "missing"];
+    var ownFilter = "all";
     var THEME_KEY = "posca-theme";
     var LS_KEY = "posca-inventory-local";
     var INVENTORY_HEADER = [
@@ -624,6 +685,15 @@
       };
     }
 
+    function setOwnFilter(filter) {
+      if (OWN_FILTERS.indexOf(filter) === -1) return;
+      ownFilter = filter;
+      document.querySelectorAll("[data-filter-btn]").forEach(function (btn) {
+        btn.setAttribute("aria-pressed", String(btn.dataset.filterBtn === filter));
+      });
+      render();
+    }
+
     function getStoredTheme() {
       try {
         var t = localStorage.getItem(THEME_KEY);
@@ -684,17 +754,29 @@
           return acc + (owned.has(c.key) ? 1 : 0);
         }, 0);
 
+        // Counter always reflects the full size ("N of M"), independent of
+        // the ownership filter, so context stays when a section empties out.
         var head = el("div", "size-head");
         var code = el("h2", "size-code", size.label);
         var count = el("span", "size-count", ownedCount + " of " + size.colors.length);
         head.appendChild(code);
         head.appendChild(count);
         section.appendChild(head);
-        section.appendChild(el("p", "size-tip", size.tip));
+
+        // A size emptied by the filter keeps only its header + counter.
+        var visibleInSize = ownFilter === "owned" ? ownedCount
+          : ownFilter === "missing" ? size.colors.length - ownedCount
+          : size.colors.length;
+        if (visibleInSize > 0) section.appendChild(el("p", "size-tip", size.tip));
 
         CATEGORY_ORDER.forEach(function (category) {
           var colors = size.colors
-            .filter(function (c) { return c.category === category; })
+            .filter(function (c) {
+              if (c.category !== category) return false;
+              if (ownFilter === "owned") return owned.has(c.key);
+              if (ownFilter === "missing") return !owned.has(c.key);
+              return true;
+            })
             .sort(function (a, b) { return spectrumKey(a.hex) - spectrumKey(b.hex); });
           if (colors.length === 0) return;
 
@@ -741,6 +823,9 @@
         labels[btn.dataset.labelBtn] = !labels[btn.dataset.labelBtn];
         setLabels(labels);
       });
+    });
+    document.querySelectorAll("[data-filter-btn]").forEach(function (btn) {
+      btn.addEventListener("click", function () { setOwnFilter(btn.dataset.filterBtn); });
     });
     document.getElementById("theme-btn").addEventListener("click", function () {
       setTheme(nextTheme(document.getElementById("theme-btn").dataset.mode));
