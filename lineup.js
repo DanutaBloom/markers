@@ -634,6 +634,27 @@ const LINEUP = [
     "number": "2",
     "hex": "#ffd100",
     "category": "Standard"
+   },
+   {
+    "key": "3M:Aqua Green",
+    "name": "Aqua Green",
+    "number": "P6",
+    "hex": "#71dbd4",
+    "category": "Pastel"
+   },
+   {
+    "key": "3M:Coral Pink",
+    "name": "Coral Pink",
+    "number": "66",
+    "hex": "#ff8da1",
+    "category": "Standard"
+   },
+   {
+    "key": "3M:Orange",
+    "name": "Orange",
+    "number": "4",
+    "hex": "#ff5c39",
+    "category": "Standard"
    }
   ]
  },

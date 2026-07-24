@@ -390,6 +390,7 @@
     outline-offset: 2px;
   }
   .chip {
+    position: relative;
     aspect-ratio: 1;
     border-radius: 7px;
     background: var(--c);
@@ -398,6 +399,23 @@
     transition: transform 120ms cubic-bezier(0.16, 1, 0.3, 1);
   }
   .sw:active .chip { transform: scale(0.92); }
+  /* Owned check badge: paper disc + ink glyph, so the owned state reads as a
+     hard binary signal on any pigment (the wash/dash contrast alone was too
+     subtle during entry, esp. for light colors). */
+  .sw.owned .chip::after {
+    content: "\2713";
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--paper);
+    box-shadow: 0 0 0 1px var(--chip-edge);
+    color: var(--ink);
+    font: 700 9px/14px var(--sans);
+    text-align: center;
+  }
   .sw.missing .chip {
     background: color-mix(in srgb, var(--c) var(--missing-keep), var(--missing-base));
     border: 1.5px dashed var(--faint);
@@ -696,11 +714,31 @@
 
     function setOwnFilter(filter) {
       if (OWN_FILTERS.indexOf(filter) === -1) return;
+      // The re-render can shrink the page (Owned/Missing), which would clamp
+      // scroll to the top. Remember the size section at the top of the
+      // viewport and jump straight back to it (sections carry
+      // scroll-margin-top: var(--bar-h), so it lands below the sticky bar).
+      // A section whose tail shows less than ~one chip row below the bar
+      // doesn't count as "being viewed" — anchor the next one instead.
+      var anchor = null;
+      if (window.scrollY > 0) {
+        var barH = parseFloat(getComputedStyle(document.documentElement)
+          .getPropertyValue("--bar-h")) || 0;
+        var sections = document.querySelectorAll("section.size");
+        for (var i = 0; i < sections.length; i++) {
+          if (sections[i].getBoundingClientRect().bottom > barH + 80) {
+            anchor = sections[i].id;
+            break;
+          }
+        }
+      }
       ownFilter = filter;
       document.querySelectorAll("[data-filter-btn]").forEach(function (btn) {
         btn.setAttribute("aria-pressed", String(btn.dataset.filterBtn === filter));
       });
       render();
+      var target = anchor && document.getElementById(anchor);
+      if (target) target.scrollIntoView({ behavior: "instant" });
     }
 
     function getStoredTheme() {

@@ -83,6 +83,20 @@ HEX_NAME_CORRECTIONS = {
     ('yellow fluo', '#ffff2e'): 'Fluorescent Yellow',
 }
 
+# Colors missing from the posca.com scrape (its PC-3M listing is incomplete),
+# appended per size after the scraped colors as (name, hex). Hex reused from
+# the same pigment in PC-5M; numbers resolve via number-map.json like every
+# other color (2026-07-24 spec: docs/superpowers/specs/2026-07-24-lineup-gaps-
+# scroll-anchor-owned-check-design.md).
+EXTRA_COLORS = {
+    '3M': [
+        ('Aqua Green', '#71dbd4'),  # physical cap (owner, 2026-07-24): P6
+        ('Coral Pink', '#ff8da1'),  # physical cap (owner, 2026-07-24): 66
+        ('Orange', '#ff5c39'),      # both saved sources list PC-3M Orange
+                                    # (Jenny's Crayon Collection, mpuni.co.jp)
+    ],
+}
+
 def category(name, number):
     if number:
         pfx = number[0]
@@ -101,7 +115,9 @@ def category(name, number):
 lineup = []
 for slug, size, label, tip in SIZES:
     colors, seen = [], {}
-    for hexv, raw_name in scrape[slug]['colors']:
+    entries = list(scrape[slug]['colors']) + \
+        [[hexv, name] for name, hexv in EXTRA_COLORS.get(size, [])]
+    for hexv, raw_name in entries:
         name = normalize_name(raw_name)
         hexl = hexv.lower()
         name = HEX_NAME_CORRECTIONS.get((name.lower(), hexl), name)
