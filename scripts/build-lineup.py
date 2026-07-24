@@ -106,10 +106,15 @@ for slug, size, label, tip in SIZES:
             num = numbers.get(name.lower())
         else:
             # Second+ occurrence of a duplicated name: only verified when a
-            # source explicitly pairs THIS hex to a number (see
-            # scripts/number-map.json 'name@hex' keys, e.g. the PC-3M second
-            # "Brown" == Dark Brown, hex #572d2d, verified 22 by two
-            # independent sources). Otherwise stays name-verbatim, number null.
+            # source explicitly pairs THIS hex to a number, via a
+            # scripts/number-map.json 'name@hex' key. No such key currently
+            # exists: the PC-3M second "Brown" (hex #572d2d) is still
+            # unverified. Jenny's source has "Dark Brown" 22 at this exact
+            # hex, but second-source.html's "Dark Brown" 22 is a hex
+            # mismatch (#4c2c30) and mpuni.co.jp's PC-3M page lists only one
+            # Brown — so only one independent source supports the pairing.
+            # The mechanism stays in place, unused, until a second source
+            # confirms it. Otherwise stays name-verbatim, number null.
             num = numbers.get(f'{name.lower()}@{hexl}')
         colors.append({'key': key, 'name': name, 'number': num, 'hex': hexl,
                        'category': category(name, num)})
