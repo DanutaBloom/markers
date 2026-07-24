@@ -30,29 +30,34 @@
     /* Owned-chip edge: dark hairline on light paper, light hairline on dark
        paper, so near-paper pigments keep a visible boundary. */
     --chip-edge: light-dark(rgba(0, 0, 0, 0.12), rgba(255, 255, 255, 0.16));
+    /* Idle-control edge: stronger than --hairline so off-state toggles and
+       buttons read as interactive, not disabled. */
+    --edge: light-dark(#c9c9c7, #4a4a4a);
     /* Missing-state wash: pigment mixed toward the theme's neutral base.
-       The base sits slightly off the page surface in dark so even Black
-       (#2d2926) reads as a chip, not as background. */
-    --missing-base: light-dark(#ffffff, #232323);
+       The base sits off the page surface in dark so even Black (#2d2926)
+       reads as a chip, not as background. */
+    --missing-base: light-dark(#ffffff, #2b2b2b);
     --missing-keep: 20%;
     --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
     --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
     /* 4px spacing scale */
     --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s6: 24px; --s8: 32px;
-    /* Measured sticky-bar height (165px: bar-top + actions + sizes + border)
+    /* Measured sticky-bar height (145px: bar-top + actions + sizes + border)
        plus a little air, so size jumps land headings below the bar. */
-    --bar-h: 172px;
+    --bar-h: 152px;
   }
   /* Darkening desaturates perceived pigment more than lightening does, so the
-     missing wash keeps a larger share of the pigment in dark. (light-dark()
-     only accepts colors, hence the explicit dark-scope overrides.) */
+     missing wash keeps a much larger share of the pigment in dark; 60% keeps
+     hues nameable on an empty inventory while the dashed border still marks
+     the missing state. (light-dark() only accepts colors, hence the explicit
+     dark-scope overrides.) */
   :root[data-theme="light"] { color-scheme: light; }
   :root[data-theme="dark"] {
     color-scheme: dark;
-    --missing-keep: 45%;
+    --missing-keep: 60%;
   }
   @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) { --missing-keep: 45%; }
+    :root:not([data-theme="light"]) { --missing-keep: 60%; }
   }
 
   * { box-sizing: border-box; }
@@ -91,7 +96,6 @@
     justify-content: space-between;
     gap: var(--s3);
     padding: var(--s2) var(--s4) 0;
-    min-height: 52px;
   }
   .bar h1 {
     margin: 0;
@@ -111,57 +115,62 @@
   }
 
   /* Control language: every control in the bar shares one vocabulary.
-     - metrics: 44px min touch height, 13px/600 sans, 150ms state transitions
+     - visual height 36px (40px size pills), 13px/600 sans, 150ms transitions
+     - every control expands its hit area to >= 44px via an invisible
+       ::before inset (same trick the swatches use), keeping the bar compact
+       without shrinking touch targets
+     - idle state: paper background + ink text + --edge outline, identical
+       everywhere, so "off" still reads as tappable
      - "on" state: ink background + paper text, identical everywhere
-     - shapes: .seg = one-of-N segmented group (theme); .toggle = independent
-       on/off chip (Number, Name); .copy-btn = plain action; .sizes a = link
      All pill-radius, all same border weight, so the whole bar reads as one
      instrument panel instead of three unrelated widgets. */
-  .seg {
-    display: flex;
-    gap: 2px;
-    background: var(--wash);
-    border-radius: 999px;
-    padding: 2px;
-  }
-  .seg button {
-    appearance: none;
-    border: 0;
-    margin: 0;
-    background: transparent;
-    color: var(--muted);
-    font: 600 13px/1 var(--sans);
-    padding: 0 var(--s3);
-    min-height: 40px;
-    min-width: 44px;
-    border-radius: 999px;
-    cursor: pointer;
-    transition: background-color 150ms, color 150ms;
-  }
-  .seg button[aria-pressed="true"] {
-    background: var(--ink);
-    color: var(--paper);
-  }
-  .toggle {
+  .toggle,
+  .icon-btn,
+  .copy-btn {
+    position: relative;
     appearance: none;
     margin: 0;
     background: var(--paper);
-    border: 1px solid var(--hairline);
+    border: 1px solid var(--edge);
     border-radius: 999px;
-    color: var(--muted);
+    color: var(--ink);
     font: 600 13px/1 var(--sans);
-    padding: 0 var(--s3);
-    min-height: 44px;
-    min-width: 44px;
+    min-height: 36px;
     cursor: pointer;
     transition: background-color 150ms, color 150ms, border-color 150ms;
+  }
+  .toggle::before,
+  .icon-btn::before,
+  .copy-btn::before,
+  .sizes a::before {
+    content: "";
+    position: absolute;
+    inset: -4px;
+  }
+  .toggle {
+    padding: 0 var(--s3);
+    min-width: 44px;
   }
   .toggle[aria-pressed="true"] {
     background: var(--ink);
     border-color: var(--ink);
     color: var(--paper);
   }
-  .seg button:focus-visible,
+  .icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    padding: 0;
+    flex-shrink: 0;
+  }
+  .icon-btn svg { display: none; }
+  .icon-btn[data-mode="auto"] .ic-auto,
+  .icon-btn[data-mode="light"] .ic-light,
+  .icon-btn[data-mode="dark"] .ic-dark { display: block; }
+  .icon-btn:active,
+  .toggle:not([aria-pressed="true"]):active { background: var(--wash); }
+  .icon-btn:focus-visible,
   .toggle:focus-visible,
   .sizes a:focus-visible {
     outline: 2px solid var(--accent);
@@ -178,12 +187,13 @@
   }
   .sizes::-webkit-scrollbar { display: none; }
   .sizes a {
+    position: relative;
     flex: 0 0 auto;
     display: inline-flex;
     align-items: center;
-    min-height: 44px;
+    min-height: 40px;
     padding: 0 var(--s3);
-    border: 1px solid var(--hairline);
+    border: 1px solid var(--edge);
     border-radius: 999px;
     color: var(--ink);
     font: 600 13px/1 var(--mono);
@@ -197,32 +207,36 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--s3);
-    padding: 0 var(--s4) var(--s2);
+    padding: var(--s2) var(--s4) 0;
   }
-  .bar-actions-left,
-  .bar-actions-right {
+  .bar-actions-left {
     display: flex;
     align-items: center;
     gap: var(--s2);
   }
   .copy-btn {
-    appearance: none;
-    border: 1px solid var(--hairline);
-    border-radius: 999px;
-    background: var(--paper);
-    color: var(--ink);
-    font: 600 13px/1 var(--sans);
     padding: 0 var(--s4);
-    min-height: 44px;
     white-space: nowrap;
     flex-shrink: 0;
-    cursor: pointer;
-    transition: border-color 150ms, background-color 150ms;
   }
   .copy-btn:active { background: var(--wash); }
   .copy-btn:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
+  }
+  /* Dirty state: a small accent dot on the copy button's corner (the action
+     that resolves it), with a paper ring so it stays visible on any theme.
+     The accessible name change rides on aria-label in updateDirtyIndicator. */
+  .copy-btn.dirty::after {
+    content: "";
+    position: absolute;
+    top: -3px;
+    right: 5px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 2px var(--paper);
   }
   /* Status floats below the bar so a message never reflows the sticky rows
      (a transient "List copied" must not push the size nav around). */
@@ -241,22 +255,6 @@
     text-align: center;
   }
   .copy-status:empty { display: none; }
-  .dirty {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--s1);
-    font: 600 13px/1.2 var(--sans);
-    color: var(--accent);
-  }
-  .dirty::before {
-    content: "";
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--accent);
-  }
-  .dirty[hidden] { display: none; }
 
   main {
     padding: 0 var(--s4) var(--s8);
@@ -303,9 +301,10 @@
     color: var(--muted);
   }
 
-  /* Swatch grid: ONE geometry for all four label combinations. Toggling
-     Number/Name only changes what the fixed label area shows; nothing
-     reflows. */
+  /* Swatch grid: column count is set purely by container width, so it is
+     identical across all four label combinations. Row height varies by
+     state (density first): both labels off collapses the label area to a
+     pure color grid; turning labels on reflows vertically only. */
   .grid {
     display: grid;
     gap: 6px;
@@ -355,13 +354,16 @@
     box-shadow: none;
   }
 
-  /* Fixed-height label area: sized for the worst case (number line 14px +
-     name line 15px) and reserved in ALL four toggle combinations, so turning
-     Number or Name on or off never shifts the grid. */
+  /* Label area: collapsed entirely when both toggles are off (pure dense
+     color grid). Each visible line has a fixed height (number 14px, name a
+     fixed 2-line box), so within any one toggle state every row of the grid
+     is the same height; no per-row raggedness. */
   .sw-label {
-    height: 29px;
     margin-top: 3px;
     overflow: hidden;
+  }
+  body:not([data-show-number]):not([data-show-name]) .sw-label {
+    display: none;
   }
   .sw-num, .sw-name {
     display: none;
@@ -371,7 +373,6 @@
   .sw.missing .sw-num,
   .sw.missing .sw-name { color: var(--muted); }
   body[data-show-number] .sw-num { display: block; }
-  body[data-show-name] .sw-name { display: block; }
   .sw-num {
     font: 500 11px/14px var(--mono);
     font-variant-numeric: tabular-nums;
@@ -381,13 +382,19 @@
     font-weight: 400;
     color: var(--muted);
   }
+  /* Names wrap to at most two lines (never mid-word); anything longer gets
+     an ellipsis. The box is always exactly two lines tall in name-on states
+     so label height stays constant across cells. */
   .sw-name {
     font-size: 11px;
-    line-height: 15px;
-    white-space: nowrap;
+    line-height: 13px;
+    height: 26px;
     overflow: hidden;
     text-overflow: ellipsis;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
+  body[data-show-name] .sw-name { display: -webkit-box; }
 </style>
 <script>
   // Apply a stored manual theme before first paint (auto = no attribute).
@@ -403,21 +410,26 @@
   <header class="bar">
     <div class="bar-top">
       <h1>Posca inventory</h1>
-      <div class="seg" role="group" aria-label="Theme">
-        <button type="button" data-theme-btn="auto" aria-pressed="true">Auto</button>
-        <button type="button" data-theme-btn="light" aria-pressed="false">Light</button>
-        <button type="button" data-theme-btn="dark" aria-pressed="false">Dark</button>
-      </div>
+      <button type="button" id="theme-btn" class="icon-btn" data-mode="auto">
+        <svg class="ic-auto" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle cx="12" cy="12" r="9"></circle>
+          <path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"></path>
+        </svg>
+        <svg class="ic-light" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"></circle>
+          <path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"></path>
+        </svg>
+        <svg class="ic-dark" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11z"></path>
+        </svg>
+      </button>
     </div>
     <div class="bar-actions">
       <div class="bar-actions-left" role="group" aria-label="Swatch labels">
         <button type="button" class="toggle" data-label-btn="number" aria-pressed="false">Number</button>
         <button type="button" class="toggle" data-label-btn="name" aria-pressed="false">Name</button>
       </div>
-      <div class="bar-actions-right">
-        <span id="dirty-indicator" class="dirty" hidden>not saved</span>
-        <button type="button" id="copy-btn" class="copy-btn">Copy updated list</button>
-      </div>
+      <button type="button" id="copy-btn" class="copy-btn">Copy updated list</button>
     </div>
     <nav class="sizes" aria-label="Jump to size"></nav>
     <span id="copy-status" class="copy-status" aria-live="polite"></span>
@@ -501,8 +513,11 @@
     function updateDirtyIndicator() {
       var o = loadOverlay();
       var dirty = (o.added.length + o.removed.length) > 0;
-      var indicator = document.getElementById("dirty-indicator");
-      if (indicator) indicator.hidden = !dirty;
+      var btn = document.getElementById("copy-btn");
+      if (!btn) return;
+      btn.classList.toggle("dirty", dirty);
+      if (dirty) btn.setAttribute("aria-label", "Copy updated list (unsaved changes)");
+      else btn.removeAttribute("aria-label");
     }
 
     // Full inventory.js file content from effectiveOwned(), keys ordered by
@@ -618,6 +633,10 @@
       }
     }
 
+    function nextTheme(theme) {
+      return THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length];
+    }
+
     function setTheme(theme) {
       if (theme === "auto") {
         delete document.documentElement.dataset.theme;
@@ -625,9 +644,13 @@
         document.documentElement.dataset.theme = theme;
       }
       try { localStorage.setItem(THEME_KEY, theme); } catch (e) { /* private mode */ }
-      document.querySelectorAll("[data-theme-btn]").forEach(function (btn) {
-        btn.setAttribute("aria-pressed", String(btn.dataset.themeBtn === theme));
-      });
+      var btn = document.getElementById("theme-btn");
+      if (btn) {
+        btn.dataset.mode = theme;
+        var text = "Theme: " + theme + ". Tap for " + nextTheme(theme) + ".";
+        btn.setAttribute("aria-label", text);
+        btn.title = text;
+      }
     }
 
     function el(tag, className, text) {
@@ -719,8 +742,8 @@
         setLabels(labels);
       });
     });
-    document.querySelectorAll("[data-theme-btn]").forEach(function (btn) {
-      btn.addEventListener("click", function () { setTheme(btn.dataset.themeBtn); });
+    document.getElementById("theme-btn").addEventListener("click", function () {
+      setTheme(nextTheme(document.getElementById("theme-btn").dataset.mode));
     });
     document.getElementById("copy-btn").addEventListener("click", copyInventory);
 
