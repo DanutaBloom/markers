@@ -48,71 +48,39 @@ def normalize_name(name):
 #     infographic (all 65 non-UK colors) doesn't carry it individually.
 #   Both sources -> Pastel.
 #
-# Round 3 (2026-07-24) added a third independent source — scripts/
-# source-mpuni-pc{1m,3m,5m,8k,17k}.html (mpuni.co.jp, Mitsubishi Pencil's
-# official Japan site; product listings give each color's PC-<size>.<number>
-# code, e.g. "黒" (Black) = PC5M.24 on all five size pages). It resolved
-# Black -> 24 and White -> 1 (both plain numbers, so no CATEGORY_OVERRIDES
-# entry — category() derives Standard from the numeric prefix directly).
-# White is a 2-vs-1 split: mpuni + Jenny's agree on 1; second-source.html's
-# 255 is outvoted (see .superpowers/sdd/task-N1-report.md).
+# Rounds 3 and 5 (2026-07-24) checked three more independent sources
+# (mpuni.co.jp JP product pages, second-source.pdf, source-cultpens-pc5m
+# .html) against the remaining nulls; see git history for the full
+# per-color trail. None of them cleared the two-source/exact-hex bar, so
+# Coral, Yellow Fluo, Grape Green, Pale Fluorescent Orange and Glacier Blue
+# all stayed null pending a physical-cap check.
 #
-# Checked and still REJECTED after the third source (fallback Standard
-# stands, no override written; numbers also stay null — see check-lineup.py
-# output):
-#   - Coral (5M, 5BR): all three sources only have "Coral Pink" (#66) —
-#     never bare "Coral" (posca.com's scrape name). Per the R1 conservative
-#     rule (name-or-hex-paired matches only), a name mismatch doesn't
-#     verify the number even with three-way hex agreement.
-#   - Grape Green (5M), Yellow Fluo (5M), Pale Fluorescent Orange (8K):
-#     absent from mpuni.co.jp entirely (no Fluorescent-series page exists
-#     on the JP site) and from second-source.html.
-#   - Glacier Blue (1MR): absent from mpuni.co.jp (JP pastels are only
-#     P2/P4/P6/P11) — still single-source (second-source.html P33).
-#   - 3M "Brown" 2nd occurrence (hex #572d2d): mpuni's PC-3M page lists
-#     only one Brown (茶 = PC3M.21, no ダークブラウン/Dark Brown entry) —
-#     doesn't satisfy "a saved source explicitly lists the 3M range with
-#     both entries identified." Only Jenny's does; stays single-source.
-#
-# Round 5 (2026-07-24, Task N5) added a NEW sanctioned identity rule: a
-# name-variant color may be accepted when TWO independent saved sources
-# both show the color, in the SAME size range, with a hex IDENTICAL
-# (case-insensitive, no near-misses) to the posca.com scrape hex for that
-# entry. Re-examined all 7 remaining nulls against this rule plus new
-# sources (scripts/second-source.pdf — turned out to be the same PoscART
-# chart as second-source.html, not independent; scripts/
-# source-mpuni-posca-index.html — confirms mpuni.co.jp's JP catalogue has
-# no PC-5BR/PCF-350/PC-1MR pages at all, only pc_1m/pc_3m/pc_5m/pc_8k/
-# pc_17k, so no further JP data exists for the 5BR/1MR-only colors;
-# scripts/source-cultpens-pc5m.html — a real UK retailer page, confirms
-# the name variants "Coral Pink", "Green Grape" and "Fluorescent Yellow"
-# but carries zero per-color hex or number codes anywhere on the page).
-# None of the 7 clear the identity rule's hex bar:
-#   - Glacier Blue (1MR, #69caf8): second-source.html's Glacier Blue P33
-#     IS an exact hex match — but it's the only independent source (the
-#     .pdf duplicate of the same PoscART chart doesn't count as a second
-#     one, and Jenny's explicitly says she never got hex data for it).
-#     One matching source, not two -> stays null.
-#   - Coral (5M/5BR, #ff8da1): second-source "Coral Pink" #FA9D8F and
-#     Jenny's "Coral Pink" #FF8CA1 are both close but not IDENTICAL to
-#     #ff8da1 (near-miss, explicitly excluded by the rule). mpuni.co.jp's
-#     PC-5M page does give a size-matched number for the name variant
-#     (PC5M.66 = コーラルピンク/Coral Pink) but carries no hex at all, so it
-#     can't supply the hex-identity half of the rule either.
-#   - Grape Green (5M, #cace58): no saved or newly-found source lists this
-#     entry under ANY name (bare or variant) with a hex at all.
-#   - Yellow Fluo (5M, #ffff2e): second-source's "Fluorescent Yellow" F2 is
-#     #FEFF2E — one byte off #ffff2e, so a near-miss, not identical.
-#   - Pale Fluorescent Orange (8K, #ffff2e — same hex posca.com gives
-#     Yellow Fluo/5M, apparently a posca.com-side scrape quirk, not ours to
-#     fix): no source lists this name or a matching hex in the 8K range.
-#   - 3M Brown 2nd occurrence (#572d2d): unchanged from Round 3 — still
-#     single-source (Jenny's Dark Brown 22, exact hex match); second-
-#     source's Dark Brown 22 stays a hex mismatch (#4c2c30); mpuni's PC-3M
-#     page still lists only one Brown.
-# All 7 stay null; listed in the report for a physical-cap check.
+# Round 6 / Task N6 (2026-07-24) resolved three of those from the owner's
+# physical cap reading ("physical cap (owner), 2026-07-24" — see
+# HEX_NAME_CORRECTIONS below and .superpowers/sdd/task-N6-report.md):
+# 3M's second "Brown" -> Dark Brown 22, 5M/5BR Coral -> Coral Pink 66, 5M
+# Yellow Fluo -> Fluorescent Yellow F2. Remaining nulls (cap check pending):
+# 1MR Glacier Blue, 5M Grape Green, 8K Pale Fluorescent Orange.
 CATEGORY_OVERRIDES = {
     'glacier blue': 'Pastel',
+}
+
+# Hex-qualified name corrections from physical cap evidence (owner,
+# 2026-07-24 — Task N6). Keyed by (posca.com scrape name lower, hex) so a
+# correction only fires for the exact entry it was verified against, never
+# for an unrelated color that happens to share the pre-correction name or
+# hex alone. After renaming, the normal name-keyed lookup in
+# number-map.json supplies the number, propagating to same-named entries in
+# other sizes (e.g. 5M/5BR Coral Pink) exactly like every other color.
+HEX_NAME_CORRECTIONS = {
+    # 3M: cap has both nr 21 "Brown" and nr 22 "Dark Brown"; Jenny's saved
+    # source pairs Dark Brown 22 with this exact hex.
+    ('brown', '#572d2d'): 'Dark Brown',
+    # 5M/5BR: cap PC-5M nr 66 is named "Coral Pink"; only coral in the range.
+    ('coral', '#ff8da1'): 'Coral Pink',
+    # 5M: cap F2 is named "F.Yellow"; display name matches sibling
+    # Fluorescent Orange/Pink/Red.
+    ('yellow fluo', '#ffff2e'): 'Fluorescent Yellow',
 }
 
 def category(name, number):
@@ -135,24 +103,21 @@ for slug, size, label, tip in SIZES:
     colors, seen = [], {}
     for hexv, raw_name in scrape[slug]['colors']:
         name = normalize_name(raw_name)
-        # posca.com lists some names twice within a size (e.g. Brown in PC-3M);
+        hexl = hexv.lower()
+        name = HEX_NAME_CORRECTIONS.get((name.lower(), hexl), name)
+        # posca.com lists some names twice within a size (e.g. Brown in PC-3M,
+        # before the HEX_NAME_CORRECTIONS rename above splits it in two);
         # keys stay unique via a deterministic ordinal suffix in scrape order.
         seen[name] = seen.get(name, 0) + 1
         key = f'{size}:{name}' if seen[name] == 1 else f'{size}:{name}-{seen[name]}'
-        hexl = hexv.lower()
         if seen[name] == 1:
             num = numbers.get(name.lower())
         else:
-            # Second+ occurrence of a duplicated name: only verified when a
-            # source explicitly pairs THIS hex to a number, via a
-            # scripts/number-map.json 'name@hex' key. No such key currently
-            # exists: the PC-3M second "Brown" (hex #572d2d) is still
-            # unverified. Jenny's source has "Dark Brown" 22 at this exact
-            # hex, but second-source.html's "Dark Brown" 22 is a hex
-            # mismatch (#4c2c30) and mpuni.co.jp's PC-3M page lists only one
-            # Brown — so only one independent source supports the pairing.
-            # The mechanism stays in place, unused, until a second source
-            # confirms it. Otherwise stays name-verbatim, number null.
+            # Second+ occurrence of a name HEX_NAME_CORRECTIONS didn't
+            # rename apart: only verified when a source explicitly pairs
+            # THIS hex to a number, via a scripts/number-map.json 'name@hex'
+            # key. No such case currently exists; stays name-verbatim,
+            # number null until one does.
             num = numbers.get(f'{name.lower()}@{hexl}')
         colors.append({'key': key, 'name': name, 'number': num, 'hex': hexl,
                        'category': category(name, num)})

@@ -398,9 +398,9 @@ const LINEUP = [
     "category": "Standard"
    },
    {
-    "key": "3M:Brown-2",
-    "name": "Brown",
-    "number": null,
+    "key": "3M:Dark Brown",
+    "name": "Dark Brown",
+    "number": "22",
     "hex": "#572d2d",
     "category": "Standard"
    },
@@ -713,9 +713,9 @@ const LINEUP = [
     "category": "Standard"
    },
    {
-    "key": "5M:Coral",
-    "name": "Coral",
-    "number": null,
+    "key": "5M:Coral Pink",
+    "name": "Coral Pink",
+    "number": "66",
     "hex": "#ff8da1",
     "category": "Standard"
    },
@@ -986,9 +986,9 @@ const LINEUP = [
     "category": "Standard"
    },
    {
-    "key": "5M:Yellow Fluo",
-    "name": "Yellow Fluo",
-    "number": null,
+    "key": "5M:Fluorescent Yellow",
+    "name": "Fluorescent Yellow",
+    "number": "F2",
     "hex": "#ffff2e",
     "category": "Fluo"
    }
@@ -1028,9 +1028,9 @@ const LINEUP = [
     "category": "Standard"
    },
    {
-    "key": "5BR:Coral",
-    "name": "Coral",
-    "number": null,
+    "key": "5BR:Coral Pink",
+    "name": "Coral Pink",
+    "number": "66",
     "hex": "#ff8da1",
     "category": "Standard"
    },

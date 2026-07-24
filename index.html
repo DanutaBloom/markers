@@ -560,12 +560,21 @@
 
     // Drop overlay entries already reflected in the committed INVENTORY
     // (an "added" key that's now committed, or a "removed" key that's now
-    // absent) so a freshly pasted inventory.js clears the dirty state.
+    // absent) so a freshly pasted inventory.js clears the dirty state. Also
+    // drop overlay entries whose key no longer exists in LINEUP at all —
+    // e.g. a color a data correction renamed (2026-07-24 Task N6: "3M:Brown-2"
+    // -> "3M:Dark Brown", "5M:Coral" -> "5M:Coral Pink", "5BR:Coral" ->
+    // "5BR:Coral Pink", "5M:Yellow Fluo" -> "5M:Fluorescent Yellow") would
+    // otherwise leave an orphaned local tick and a permanently stuck dirty dot.
     function cleanStaleOverlay() {
       var o = loadOverlay();
       var committed = new Set(INVENTORY);
-      var added = o.added.filter(function (k) { return !committed.has(k); });
-      var removed = o.removed.filter(function (k) { return committed.has(k); });
+      var validKeys = new Set();
+      LINEUP.forEach(function (size) {
+        size.colors.forEach(function (c) { validKeys.add(c.key); });
+      });
+      var added = o.added.filter(function (k) { return !committed.has(k) && validKeys.has(k); });
+      var removed = o.removed.filter(function (k) { return committed.has(k) && validKeys.has(k); });
       if (added.length !== o.added.length || removed.length !== o.removed.length) {
         saveOverlay({ added: added, removed: removed });
       }
