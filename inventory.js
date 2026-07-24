@@ -42,6 +42,7 @@ const INVENTORY = [
   "5M:Green",
   "5M:Ivory",
   "5M:Lavender",
+  "5M:Light Orange",
   "5M:Light Pink",
   "5M:Lilac",
   "5M:Ochre",
