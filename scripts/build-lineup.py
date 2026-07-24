@@ -73,6 +73,44 @@ def normalize_name(name):
 #     only one Brown (茶 = PC3M.21, no ダークブラウン/Dark Brown entry) —
 #     doesn't satisfy "a saved source explicitly lists the 3M range with
 #     both entries identified." Only Jenny's does; stays single-source.
+#
+# Round 5 (2026-07-24, Task N5) added a NEW sanctioned identity rule: a
+# name-variant color may be accepted when TWO independent saved sources
+# both show the color, in the SAME size range, with a hex IDENTICAL
+# (case-insensitive, no near-misses) to the posca.com scrape hex for that
+# entry. Re-examined all 7 remaining nulls against this rule plus new
+# sources (scripts/second-source.pdf — turned out to be the same PoscART
+# chart as second-source.html, not independent; scripts/
+# source-mpuni-posca-index.html — confirms mpuni.co.jp's JP catalogue has
+# no PC-5BR/PCF-350/PC-1MR pages at all, only pc_1m/pc_3m/pc_5m/pc_8k/
+# pc_17k, so no further JP data exists for the 5BR/1MR-only colors;
+# scripts/source-cultpens-pc5m.html — a real UK retailer page, confirms
+# the name variants "Coral Pink", "Green Grape" and "Fluorescent Yellow"
+# but carries zero per-color hex or number codes anywhere on the page).
+# None of the 7 clear the identity rule's hex bar:
+#   - Glacier Blue (1MR, #69caf8): second-source.html's Glacier Blue P33
+#     IS an exact hex match — but it's the only independent source (the
+#     .pdf duplicate of the same PoscART chart doesn't count as a second
+#     one, and Jenny's explicitly says she never got hex data for it).
+#     One matching source, not two -> stays null.
+#   - Coral (5M/5BR, #ff8da1): second-source "Coral Pink" #FA9D8F and
+#     Jenny's "Coral Pink" #FF8CA1 are both close but not IDENTICAL to
+#     #ff8da1 (near-miss, explicitly excluded by the rule). mpuni.co.jp's
+#     PC-5M page does give a size-matched number for the name variant
+#     (PC5M.66 = コーラルピンク/Coral Pink) but carries no hex at all, so it
+#     can't supply the hex-identity half of the rule either.
+#   - Grape Green (5M, #cace58): no saved or newly-found source lists this
+#     entry under ANY name (bare or variant) with a hex at all.
+#   - Yellow Fluo (5M, #ffff2e): second-source's "Fluorescent Yellow" F2 is
+#     #FEFF2E — one byte off #ffff2e, so a near-miss, not identical.
+#   - Pale Fluorescent Orange (8K, #ffff2e — same hex posca.com gives
+#     Yellow Fluo/5M, apparently a posca.com-side scrape quirk, not ours to
+#     fix): no source lists this name or a matching hex in the 8K range.
+#   - 3M Brown 2nd occurrence (#572d2d): unchanged from Round 3 — still
+#     single-source (Jenny's Dark Brown 22, exact hex match); second-
+#     source's Dark Brown 22 stays a hex mismatch (#4c2c30); mpuni's PC-3M
+#     page still lists only one Brown.
+# All 7 stay null; listed in the report for a physical-cap check.
 CATEGORY_OVERRIDES = {
     'glacier blue': 'Pastel',
 }
