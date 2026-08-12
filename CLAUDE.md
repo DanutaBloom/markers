@@ -68,6 +68,26 @@ head script), and `posca-own-filter` (all/owned/missing). The filter was deliber
 session-only in the 2026-07-23 spec; Philip reversed that on 2026-08-12, so the spec text
 on that point is superseded by the code. Keep new settings on the same pattern.
 
+### How a swatch encodes ownership
+
+Owned is a chip filled with the pigment; missing is the same cell hollow, with a 5px ring
+in that same pigment and the page color inside. Both states therefore render the exact
+posca.com hex. Two rules protect this and are easy to break by accident:
+
+- Never tint, mix, fade, or overlay the pigment to signal state. The 2026-07-23 design did
+  (a wash mixed toward a neutral), which made a missing Yellow `#ffd100` paint as `#aa8f11`.
+  The page is used in a store against physical caps, so a wrong hue is a real defect.
+- Ownership must survive a pigment that equals the page surface. Fill versus hollow cannot
+  carry White in light mode or Black in dark mode, so `tone()` tags each chip pale, mid or
+  deep by luminance and the CSS puts a small ink dot on owned chips of the extreme tone for
+  the current theme only. Any new state encoding needs an equivalent fallback.
+
+One grid per size, sorted by `CATEGORY_ORDER` then by `spectrumKey`, with no per-category
+headings; the number prefix (P, F, M, G) names the series when labels are on. The page head
+holds the title and the at-home actions and scrolls away; the sticky bar is two rows. Its
+measured height and the `--bar-h` token (currently 101px measured, 108px token) must stay in
+step, since `scroll-margin-top` on the size sections depends on it.
+
 ### DOM contract
 
 Verification scripts and later tasks rely on these staying stable: `data-key` on each

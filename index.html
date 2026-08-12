@@ -16,9 +16,6 @@
     --paper: light-dark(#ffffff, #161616);
     --ink: light-dark(#141414, #ececec);
     --muted: light-dark(#6b6b6b, #a1a1a1);
-    /* Missing-state dashed border: tuned to hold >= 3:1 against the closest
-       chip fill in each theme (White wash on light, Black wash on dark). */
-    --faint: light-dark(#909090, #7a7a7a);
     --hairline: light-dark(#e6e6e6, #2a2a2a);
     --wash: light-dark(#f5f5f4, #222222);
     /* Brand dot: the literal Posca red in both themes (decorative mark). */
@@ -33,32 +30,25 @@
     /* Idle-control edge: stronger than --hairline so off-state toggles and
        buttons read as interactive, not disabled. */
     --edge: light-dark(#c9c9c7, #4a4a4a);
-    /* Missing-state wash: pigment mixed toward the theme's neutral base.
-       The base sits off the page surface in dark so even Black (#2d2926)
-       reads as a chip, not as background. */
-    --missing-base: light-dark(#ffffff, #2b2b2b);
-    --missing-keep: 20%;
+    /* Missing-state ring width. Owned = filled chip, missing = hollow chip
+       with a ring in the same pigment (2026-08-12 redesign). Both states
+       therefore show the true posca.com hex; the earlier wash mixed the
+       pigment toward a neutral, so a missing Yellow (#ffd100) rendered as
+       #aa8f11 and could not be matched against a physical cap. Filled vs
+       hollow is a structural difference, so ownership never depends on
+       color perception. */
+    --ring: 5px;
     --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
     --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
     /* 4px spacing scale */
     --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s6: 24px; --s8: 32px;
-    /* Measured sticky-bar height (145px: bar-top + actions + sizes + border)
-       plus a little air, so size jumps land headings below the bar. */
-    --bar-h: 152px;
+    /* Measured sticky-bar height (bar-actions + sizes + border) plus a little
+       air, so size jumps land headings below the bar. Re-measure after any
+       change to the bar rows. */
+    --bar-h: 108px;
   }
-  /* Darkening desaturates perceived pigment more than lightening does, so the
-     missing wash keeps a much larger share of the pigment in dark; 60% keeps
-     hues nameable on an empty inventory while the dashed border still marks
-     the missing state. (light-dark() only accepts colors, hence the explicit
-     dark-scope overrides.) */
   :root[data-theme="light"] { color-scheme: light; }
-  :root[data-theme="dark"] {
-    color-scheme: dark;
-    --missing-keep: 60%;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) { --missing-keep: 60%; }
-  }
+  :root[data-theme="dark"] { color-scheme: dark; }
 
   * { box-sizing: border-box; }
 
@@ -80,38 +70,26 @@
     -webkit-text-size-adjust: 100%;
   }
 
-  /* Sticky bar, three rows: title + rare actions (copy, theme), grid display
-     controls (label toggles + ownership filter), size jump pills. Ordered by
-     how often each row is touched in-store: size jumps sit closest to the
-     grid, set-once/at-home actions farthest. */
-  .bar {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    background: var(--paper);
-    border-bottom: 1px solid var(--hairline);
-  }
-  .bar-top {
+  /* Page head: title plus the two at-home actions (copy, theme). Deliberately
+     NOT sticky since 2026-08-12. It used to be the sticky bar's first row,
+     which cost 145px of a phone screen for controls nobody touches in a
+     store; scrolling it away leaves two sticky rows at ~100px. */
+  .page-head {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: var(--s3);
-    padding: var(--s2) var(--s4) 0;
+    padding: var(--s3) var(--s4);
   }
-  .bar h1 {
+  .page-head h1 {
     margin: 0;
     font-size: 17px;
     font-weight: 700;
     letter-spacing: -0.01em;
     white-space: nowrap;
   }
-  .bar-top-actions {
-    display: flex;
-    align-items: center;
-    gap: var(--s2);
-    flex-shrink: 0;
-  }
-  .bar h1::before {
+  .page-head h1::before {
     content: "";
     display: inline-block;
     width: 10px;
@@ -119,6 +97,23 @@
     border-radius: 50%;
     background: var(--posca-red);
     margin-right: var(--s2);
+  }
+
+  /* Sticky bar, two rows: grid display controls (label toggles + ownership
+     filter) and size jump pills. Ordered by how often each row is touched
+     in-store, size jumps closest to the grid. */
+  .bar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--paper);
+    border-bottom: 1px solid var(--hairline);
+  }
+  .page-head-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    flex-shrink: 0;
   }
 
   /* Control language: every control in the bar shares one vocabulary.
@@ -288,14 +283,17 @@
     background: var(--accent);
     box-shadow: 0 0 0 2px var(--paper);
   }
-  /* Status floats below the bar so a message never reflows the sticky rows
-     (a transient "List copied" must not push the size nav around). */
+  /* Transient confirmation, pinned to the bottom of the viewport. It sits
+     above the sticky bar's stacking context and outside every flow, so a
+     message never reflows the header rows or hides a control. */
   .copy-status {
-    position: absolute;
-    top: calc(100% + var(--s2));
+    position: fixed;
+    z-index: 20;
+    bottom: var(--s4);
     left: 50%;
     transform: translateX(-50%);
     max-width: calc(100vw - 2 * var(--s4));
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
     padding: var(--s2) var(--s3);
     background: var(--wash);
     border: 1px solid var(--hairline);
@@ -344,26 +342,21 @@
     color: var(--muted);
   }
 
-  .cat-label {
-    margin: var(--s4) 0 var(--s2);
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--muted);
-  }
-
   /* Swatch grid: column count is set purely by container width, so it is
      identical across all four label combinations. Row height varies by
      state (density first): both labels off collapses the label area to a
      pure color grid; turning labels on reflows vertically only. */
   .grid {
     display: grid;
+    margin-top: var(--s4);
     gap: 6px;
     grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
   }
 
-  /* Swatch: owned = solid pigment chip; missing = neutral-mixed wash + dashed
-     border. Dashed border is the second (non-color) channel for the missing
-     state, and carries it for pigments near the page surface in either theme. */
+  /* Swatch: owned = filled pigment chip, missing = hollow chip ringed in the
+     same pigment. Fill vs no fill is the state channel, so it survives any
+     pigment, any theme and any viewing distance, and the color itself stays
+     true in both states. */
   .sw {
     position: relative;
     display: block;
@@ -399,27 +392,40 @@
     transition: transform 120ms cubic-bezier(0.16, 1, 0.3, 1);
   }
   .sw:active .chip { transform: scale(0.92); }
-  /* Owned check badge: paper disc + ink glyph, so the owned state reads as a
-     hard binary signal on any pigment (the wash/dash contrast alone was too
-     subtle during entry, esp. for light colors). */
+  /* Near-paper pigments are the one case fill-vs-hollow cannot carry on its
+     own: when the pigment equals the page surface, both states render as an
+     outlined box. White, Ivory and Sunshine Yellow hit that in light; Black,
+     Navy Blue and Prussian Blue hit it in dark. Those chips, and only those
+     (31 of 230, of which the owned ones show a mark), keep a small ink dot.
+     Per theme it fires on one tone group, so at most a dozen dots are on
+     screen instead of one on every owned chip. */
   .sw.owned .chip::after {
-    content: "\2713";
+    content: "";
     position: absolute;
-    top: 3px;
-    right: 3px;
-    width: 14px;
-    height: 14px;
+    top: 4px;
+    right: 4px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
-    background: var(--paper);
-    box-shadow: 0 0 0 1px var(--chip-edge);
-    color: var(--ink);
-    font: 700 9px/14px var(--sans);
-    text-align: center;
+    background: var(--ink);
+    display: none;
   }
+  .sw.owned[data-tone="pale"] .chip::after { display: block; }
+  :root[data-theme="dark"] .sw.owned[data-tone="pale"] .chip::after { display: none; }
+  :root[data-theme="dark"] .sw.owned[data-tone="deep"] .chip::after { display: block; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .sw.owned[data-tone="pale"] .chip::after { display: none; }
+    :root:not([data-theme="light"]) .sw.owned[data-tone="deep"] .chip::after { display: block; }
+  }
+  /* Hollow state: paper interior, pigment ring, hairline on the outer edge so
+     pigments close to the page surface (White on light, Black on dark) still
+     have a boundary. The check badge the wash design needed is gone: filled
+     vs hollow no longer needs a second marker to be legible. */
   .sw.missing .chip {
-    background: color-mix(in srgb, var(--c) var(--missing-keep), var(--missing-base));
-    border: 1.5px dashed var(--faint);
-    box-shadow: none;
+    background: var(--paper);
+    box-shadow:
+      inset 0 0 0 1px var(--chip-edge),
+      inset 0 0 0 var(--ring) var(--c);
   }
 
   /* Label area: collapsed entirely when both toggles are off (pure dense
@@ -475,10 +481,9 @@
 </script>
 </head>
 <body>
-  <header class="bar">
-    <div class="bar-top">
-      <h1>Posca inventory</h1>
-      <div class="bar-top-actions">
+  <div class="page-head">
+    <h1>Posca inventory</h1>
+    <div class="page-head-actions">
       <button type="button" id="copy-btn" class="copy-btn">Copy updated list</button>
       <button type="button" id="theme-btn" class="icon-btn" data-mode="auto">
         <svg class="ic-auto" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -493,8 +498,11 @@
           <path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11z"></path>
         </svg>
       </button>
-      </div>
     </div>
+    <span id="copy-status" class="copy-status" aria-live="polite"></span>
+  </div>
+
+  <header class="bar">
     <div class="bar-actions">
       <div class="bar-actions-left" role="group" aria-label="Swatch labels">
         <button type="button" class="toggle" data-label-btn="number" aria-pressed="false">Number</button>
@@ -507,7 +515,6 @@
       </div>
     </div>
     <nav class="sizes" aria-label="Jump to size"></nav>
-    <span id="copy-status" class="copy-status" aria-live="polite"></span>
   </header>
 
   <main id="app"></main>
@@ -650,6 +657,17 @@
       }, function () {
         showCopyStatus("Copy failed. Try again.", 4000);
       });
+    }
+
+    // Flags pigments that sit within a hair of one theme's page surface, so
+    // the CSS can put an owned mark on exactly those chips (see .chip::after).
+    function tone(hex) {
+      var lin = [1, 3, 5].map(function (i) {
+        var v = parseInt(hex.slice(i, i + 2), 16) / 255;
+        return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+      });
+      var l = 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2];
+      return l > 0.8 ? "pale" : l < 0.045 ? "deep" : "mid";
     }
 
     // Spectrum sort: greys/browns first by lightness, then hue (spec-fixed).
@@ -833,18 +851,24 @@
           : size.colors.length;
         if (visibleInSize > 0) section.appendChild(el("p", "size-tip", size.tip));
 
-        CATEGORY_ORDER.forEach(function (category) {
-          var colors = size.colors
-            .filter(function (c) {
-              if (c.category !== category) return false;
-              if (ownFilter === "owned") return owned.has(c.key);
-              if (ownFilter === "missing") return !owned.has(c.key);
-              return true;
-            })
-            .sort(function (a, b) { return spectrumKey(a.hex) - spectrumKey(b.hex); });
-          if (colors.length === 0) return;
+        // One continuous grid per size. Until 2026-08-12 each category got its
+        // own heading and grid, which split the nine sizes into 19 blocks,
+        // nine of them five chips or fewer, so most sections ended in a short
+        // ragged row. Categories still cluster (sorted by CATEGORY_ORDER, each
+        // block spectrum-sorted inside), and the number prefix on the label
+        // (P, F, M, G) names the series when labels are on.
+        var colors = size.colors
+          .filter(function (c) {
+            if (ownFilter === "owned") return owned.has(c.key);
+            if (ownFilter === "missing") return !owned.has(c.key);
+            return true;
+          })
+          .sort(function (a, b) {
+            var byCat = CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category);
+            return byCat !== 0 ? byCat : spectrumKey(a.hex) - spectrumKey(b.hex);
+          });
 
-          section.appendChild(el("h3", "cat-label", category));
+        if (colors.length > 0) {
           var grid = el("div", "grid");
 
           colors.forEach(function (color) {
@@ -854,6 +878,7 @@
             sw.dataset.key = color.key;
             sw.title = color.name + (color.number !== null ? " (" + color.number + ")" : "");
             sw.setAttribute("aria-pressed", String(isOwned));
+            sw.dataset.tone = tone(color.hex);
             sw.style.setProperty("--c", color.hex);
             sw.addEventListener("click", function () { toggleKey(color.key); });
 
@@ -873,7 +898,7 @@
           });
 
           section.appendChild(grid);
-        });
+        }
 
         main.appendChild(section);
       });
