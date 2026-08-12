@@ -60,10 +60,13 @@ orphaned tick and a permanently stuck dirty dot.
 The second update route is Claude Code: Philip says what he bought, you edit `inventory.js`
 directly (keys must exist in `LINEUP`), commit, push.
 
-Other persisted state: `posca-labels` (independent Number/Name booleans, with a one-time
-migration from the round-1/2 `posca-label-mode` value) and `posca-theme` (auto/light/dark,
-applied pre-paint by a head script). The ownership filter is deliberately not persisted —
-every load starts at All.
+Every user-facing setting survives a reload, each under its own localStorage key, each
+falling back to a safe default when the stored value is missing or unreadable:
+`posca-labels` (independent Number/Name booleans, with a one-time migration from the
+round-1/2 `posca-label-mode` value), `posca-theme` (auto/light/dark, applied pre-paint by a
+head script), and `posca-own-filter` (all/owned/missing). The filter was deliberately
+session-only in the 2026-07-23 spec; Philip reversed that on 2026-08-12, so the spec text
+on that point is superseded by the code. Keep new settings on the same pattern.
 
 ### DOM contract
 

@@ -526,9 +526,11 @@
       name: { number: false, name: true }, naam: { number: false, name: true }
     };
     var THEMES = ["auto", "light", "dark"];
-    // In-store quick filter over ownership. Deliberately not persisted:
-    // every load starts at "all".
+    // In-store quick filter over ownership. Persisted since 2026-08-12 at
+    // Philip's request: a reload keeps the last chosen filter. The 2026-07-23
+    // rebuild spec had it reset to "all" on every load; that is superseded.
     var OWN_FILTERS = ["all", "owned", "missing"];
+    var OWN_FILTER_KEY = "posca-own-filter";
     var ownFilter = "all";
     var THEME_KEY = "posca-theme";
     var LS_KEY = "posca-inventory-local";
@@ -712,6 +714,21 @@
       };
     }
 
+    function getStoredOwnFilter() {
+      try {
+        var f = localStorage.getItem(OWN_FILTER_KEY);
+        return OWN_FILTERS.indexOf(f) !== -1 ? f : "all";
+      } catch (e) {
+        return "all";
+      }
+    }
+
+    function syncFilterButtons() {
+      document.querySelectorAll("[data-filter-btn]").forEach(function (btn) {
+        btn.setAttribute("aria-pressed", String(btn.dataset.filterBtn === ownFilter));
+      });
+    }
+
     function setOwnFilter(filter) {
       if (OWN_FILTERS.indexOf(filter) === -1) return;
       // The re-render can shrink the page (Owned/Missing), which would clamp
@@ -733,9 +750,9 @@
         }
       }
       ownFilter = filter;
-      document.querySelectorAll("[data-filter-btn]").forEach(function (btn) {
-        btn.setAttribute("aria-pressed", String(btn.dataset.filterBtn === filter));
-      });
+      try { localStorage.setItem(OWN_FILTER_KEY, filter); }
+      catch (e) { /* private mode */ }
+      syncFilterButtons();
       render();
       var target = anchor && document.getElementById(anchor);
       if (target) target.scrollIntoView({ behavior: "instant" });
@@ -881,6 +898,8 @@
 
     setLabels(getStoredLabels());
     setTheme(getStoredTheme());
+    ownFilter = getStoredOwnFilter();
+    syncFilterButtons();
     buildNav();
     cleanStaleOverlay();
     render();
