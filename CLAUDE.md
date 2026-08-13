@@ -63,9 +63,10 @@ directly (keys must exist in `LINEUP`), commit, push.
 Every user-facing setting survives a reload, each under its own localStorage key, each
 falling back to a safe default when the stored value is missing or unreadable:
 `posca-labels` (independent Number/Name booleans, with a one-time migration from the
-round-1/2 `posca-label-mode` value) and `posca-own-filter` (all/owned/missing). The filter
-was deliberately session-only in the 2026-07-23 spec; Philip reversed that on 2026-08-12, so
-the spec text on that point is superseded by the code. Keep new settings on the same pattern.
+round-1/2 `posca-label-mode` value), `posca-own-filter` (all/owned/missing) and
+`posca-dim-owned`. The filter was deliberately session-only in the 2026-07-23 spec; Philip
+reversed that on 2026-08-12, so the spec text on that point is superseded by the code. Keep
+new settings on the same pattern.
 
 ### Dark only, and one kind of swatch
 
@@ -79,13 +80,21 @@ Two decisions from 2026-08-13, both Philip's, both superseding the 2026-07-23 sp
   the same apart from which colors appear, which is correct: the filter already says which
   set you are looking at, so a per-chip mark would repeat one fact on every chip.
 
-Only the All view could use a distinction, and that is still undecided. Until it is, the
-per-size counter ("4 of 21") carries it. Three encodings were tried and removed, so if you
-are about to add one back, know what it has to beat: a neutral wash (made a missing Yellow
-`#ffd100` paint as `#aa8f11`, unusable against a physical cap in a store), a hollow ring
-(read as a black hole in the grid), and a luminance-based ink dot (an exception that had to
-be explained). The `owned`/`missing` classes and `aria-pressed` stay on the button; they are
-state for the filter and for assistive tech, not styling hooks.
+The All view is the one place a distinction means anything, and it is opt-in: the "Dim owned"
+toggle drops owned chips to `opacity: 0.32`, scoped in CSS by
+`body[data-dim-owned][data-own-filter="all"]`. Owned is the side that fades because the
+in-store question is what you still need. Off by default, and it deliberately does nothing
+outside All.
+
+Three always-on encodings were tried and removed before landing here, so if you are about to
+add one back, know what it has to beat: a neutral wash (made a missing Yellow `#ffd100` paint
+as `#aa8f11`, unusable against a physical cap in a store), a hollow ring (read as a black hole
+in the grid), and a luminance-based ink dot (an exception that had to be explained). The
+`owned`/`missing` classes and `aria-pressed` stay on the button; they are state for the filter
+and for assistive tech, not decoration.
+
+The dim toggle sits in the page head, not next to the ownership filter, because that bar row
+already measures 377px of the 390px a phone gives it. Measure before adding a control there.
 
 One grid per size, sorted by `CATEGORY_ORDER` then by `spectrumKey`, with no per-category
 headings; the number prefix (P, F, M, G) names the series when labels are on. The page head

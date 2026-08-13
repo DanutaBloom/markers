@@ -57,16 +57,23 @@
     -webkit-text-size-adjust: 100%;
   }
 
-  /* Page head: title plus the at-home copy action. Deliberately
+  /* Page head: title plus the set-once controls (dim, copy). Deliberately
      NOT sticky since 2026-08-12. It used to be the sticky bar's first row,
      which cost 145px of a phone screen for controls nobody touches in a
-     store; scrolling it away leaves two sticky rows at ~100px. */
+     store; scrolling it away leaves two sticky rows at ~100px.
+     It wraps because it is not sticky: at 390px the title plus both controls
+     is 4px too wide for one line, and an extra line here costs nothing since
+     the whole block scrolls away. The sticky bar row cannot do this, which is
+     why the dim toggle lives here and not next to the ownership filter (that
+     row measures 377px of the 390px available, so a third pill does not fit
+     at any label length). */
   .page-head {
     position: relative;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: var(--s3);
+    gap: var(--s2) var(--s3);
     padding: var(--s3) var(--s4);
   }
   .page-head h1 {
@@ -366,9 +373,16 @@
     background: var(--c);
     border: 1.5px solid transparent;
     box-shadow: inset 0 0 0 1px var(--chip-edge);
-    transition: transform 120ms cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform 120ms cubic-bezier(0.16, 1, 0.3, 1), opacity 150ms;
   }
   .sw:active .chip { transform: scale(0.92); }
+  /* Dim owned: the one state distinction the All view can carry, and it is
+     opt-in. Off by default and scoped to All, because in the Owned and
+     Missing views every chip belongs to the same set, so dimming would either
+     grey out the whole page or do nothing. Owned is the side that fades: the
+     in-store question is what you still need, so the missing pigments are the
+     ones that must stay bright. */
+  body[data-dim-owned][data-own-filter="all"] .sw.owned .chip { opacity: 0.32; }
 
   /* Label area: collapsed entirely when both toggles are off (pure dense
      color grid). Each visible line has a fixed height (number 14px, name a
@@ -415,6 +429,7 @@
   <div class="page-head">
     <h1>Posca inventory</h1>
     <div class="page-head-actions">
+      <button type="button" class="toggle" data-dim-btn aria-pressed="false">Dim owned</button>
       <button type="button" id="copy-btn" class="copy-btn">Copy updated list</button>
     </div>
     <span id="copy-status" class="copy-status" aria-live="polite"></span>
@@ -457,6 +472,7 @@
     var OWN_FILTER_KEY = "posca-own-filter";
     var ownFilter = "all";
     var LS_KEY = "posca-inventory-local";
+    var DIM_KEY = "posca-dim-owned";
     var INVENTORY_HEADER = [
       '// Owned markers as lineup.js color keys ("SIZE:Color Name", duplicate names',
       '// carry an ordinal suffix like "3M:Brown-2").',
@@ -647,8 +663,27 @@
     }
 
     function syncFilterButtons() {
+      // The active filter also rides on the body, so the dim rule can scope
+      // itself to the All view in CSS instead of re-rendering on every change.
+      document.body.dataset.ownFilter = ownFilter;
       document.querySelectorAll("[data-filter-btn]").forEach(function (btn) {
         btn.setAttribute("aria-pressed", String(btn.dataset.filterBtn === ownFilter));
+      });
+    }
+
+    // Dim owned: opt-in, persisted, and only visible in the All view.
+    function getStoredDim() {
+      try { return localStorage.getItem(DIM_KEY) === "1"; }
+      catch (e) { return false; }
+    }
+
+    function setDim(on) {
+      if (on) document.body.dataset.dimOwned = "";
+      else delete document.body.dataset.dimOwned;
+      try { localStorage.setItem(DIM_KEY, on ? "1" : "0"); }
+      catch (e) { /* private mode */ }
+      document.querySelectorAll("[data-dim-btn]").forEach(function (btn) {
+        btn.setAttribute("aria-pressed", String(on));
       });
     }
 
@@ -791,9 +826,15 @@
     document.querySelectorAll("[data-filter-btn]").forEach(function (btn) {
       btn.addEventListener("click", function () { setOwnFilter(btn.dataset.filterBtn); });
     });
+    document.querySelectorAll("[data-dim-btn]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        setDim(document.body.dataset.dimOwned === undefined);
+      });
+    });
     document.getElementById("copy-btn").addEventListener("click", copyInventory);
 
     setLabels(getStoredLabels());
+    setDim(getStoredDim());
     ownFilter = getStoredOwnFilter();
     syncFilterButtons();
     buildNav();
