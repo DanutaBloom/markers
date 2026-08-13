@@ -63,28 +63,33 @@ directly (keys must exist in `LINEUP`), commit, push.
 Every user-facing setting survives a reload, each under its own localStorage key, each
 falling back to a safe default when the stored value is missing or unreadable:
 `posca-labels` (independent Number/Name booleans, with a one-time migration from the
-round-1/2 `posca-label-mode` value), `posca-theme` (auto/light/dark, applied pre-paint by a
-head script), and `posca-own-filter` (all/owned/missing). The filter was deliberately
-session-only in the 2026-07-23 spec; Philip reversed that on 2026-08-12, so the spec text
-on that point is superseded by the code. Keep new settings on the same pattern.
+round-1/2 `posca-label-mode` value) and `posca-own-filter` (all/owned/missing). The filter
+was deliberately session-only in the 2026-07-23 spec; Philip reversed that on 2026-08-12, so
+the spec text on that point is superseded by the code. Keep new settings on the same pattern.
 
-### How a swatch encodes ownership
+### Dark only, and one kind of swatch
 
-Owned is a chip filled with the pigment; missing is the same cell hollow, with a 5px ring
-in that same pigment and the page color inside. Both states therefore render the exact
-posca.com hex. Two rules protect this and are easy to break by accident:
+Two decisions from 2026-08-13, both Philip's, both superseding the 2026-07-23 spec:
 
-- Never tint, mix, fade, or overlay the pigment to signal state. The 2026-07-23 design did
-  (a wash mixed toward a neutral), which made a missing Yellow `#ffd100` paint as `#aa8f11`.
-  The page is used in a store against physical caps, so a wrong hue is a real defect.
-- Ownership must survive a pigment that equals the page surface. Fill versus hollow cannot
-  carry White in light mode or Black in dark mode, so `tone()` tags each chip pale, mid or
-  deep by luminance and the CSS puts a small ink dot on owned chips of the extreme tone for
-  the current theme only. Any new state encoding needs an equivalent fallback.
+- **There is no light theme.** No `light-dark()`, no `prefers-color-scheme`, no
+  `[data-theme]`, no theme control, no `posca-theme` key. Every token in `:root` is a single
+  value. Do not reintroduce a theme axis.
+- **A swatch has no ownership state.** Every chip is a filled block of the exact posca.com
+  hex, identical whether it is owned or missing. The Owned and Missing views therefore look
+  the same apart from which colors appear, which is correct: the filter already says which
+  set you are looking at, so a per-chip mark would repeat one fact on every chip.
+
+Only the All view could use a distinction, and that is still undecided. Until it is, the
+per-size counter ("4 of 21") carries it. Three encodings were tried and removed, so if you
+are about to add one back, know what it has to beat: a neutral wash (made a missing Yellow
+`#ffd100` paint as `#aa8f11`, unusable against a physical cap in a store), a hollow ring
+(read as a black hole in the grid), and a luminance-based ink dot (an exception that had to
+be explained). The `owned`/`missing` classes and `aria-pressed` stay on the button; they are
+state for the filter and for assistive tech, not styling hooks.
 
 One grid per size, sorted by `CATEGORY_ORDER` then by `spectrumKey`, with no per-category
 headings; the number prefix (P, F, M, G) names the series when labels are on. The page head
-holds the title and the at-home actions and scrolls away; the sticky bar is two rows. Its
+holds the title and the copy button and scrolls away; the sticky bar is two rows. Its
 measured height and the `--bar-h` token (currently 101px measured, 108px token) must stay in
 step, since `scroll-margin-top` on the size sections depends on it.
 

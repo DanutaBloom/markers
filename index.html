@@ -6,38 +6,28 @@
 <meta name="color-scheme" content="light dark">
 <title>Posca inventory</title>
 <style>
-  /* Token system: paper/ink chrome, one brand-red accent. The 222 official
-     pigment hexes are the real palette; everything else stays neutral (both
-     themes) so they render uncontaminated. Theme via color-scheme +
-     light-dark(): system preference by default, manual override through
-     html[data-theme]. */
+  /* Token system: paper/ink chrome, one brand-red accent. The 230 official
+     pigment hexes are the real palette; everything else stays neutral so they
+     render uncontaminated. Dark only since 2026-08-13 at Philip's request:
+     there is no light theme, no theme control and no system-preference
+     branch, so every token below is a single value. */
   :root {
-    color-scheme: light dark;
-    --paper: light-dark(#ffffff, #161616);
-    --ink: light-dark(#141414, #ececec);
-    --muted: light-dark(#6b6b6b, #a1a1a1);
-    --hairline: light-dark(#e6e6e6, #2a2a2a);
-    --wash: light-dark(#f5f5f4, #222222);
-    /* Brand dot: the literal Posca red in both themes (decorative mark). */
+    color-scheme: dark;
+    --paper: #161616;
+    --ink: #ececec;
+    --muted: #a1a1a1;
+    --hairline: #2a2a2a;
+    --wash: #222222;
+    /* Brand dot: the literal Posca red (decorative mark). */
     --posca-red: #e63312;
-    /* Functional accent (focus rings, dirty text): deepened in light so 13px
-       text passes AA on paper (5.1:1), brightened in dark for contrast on
-       near-black surfaces (5.8:1). */
-    --accent: light-dark(#d42a0c, #ff5a3c);
-    /* Owned-chip edge: dark hairline on light paper, light hairline on dark
-       paper, so near-paper pigments keep a visible boundary. */
-    --chip-edge: light-dark(rgba(0, 0, 0, 0.12), rgba(255, 255, 255, 0.16));
+    /* Functional accent (focus rings, dirty text): 5.8:1 on the page. */
+    --accent: #ff5a3c;
+    /* Owned-chip edge: light hairline so near-paper pigments keep a visible
+       boundary. */
+    --chip-edge: rgba(255, 255, 255, 0.16);
     /* Idle-control edge: stronger than --hairline so off-state toggles and
        buttons read as interactive, not disabled. */
-    --edge: light-dark(#c9c9c7, #4a4a4a);
-    /* Missing-state ring width. Owned = filled chip, missing = hollow chip
-       with a ring in the same pigment (2026-08-12 redesign). Both states
-       therefore show the true posca.com hex; the earlier wash mixed the
-       pigment toward a neutral, so a missing Yellow (#ffd100) rendered as
-       #aa8f11 and could not be matched against a physical cap. Filled vs
-       hollow is a structural difference, so ownership never depends on
-       color perception. */
-    --ring: 5px;
+    --edge: #4a4a4a;
     --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
     --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
     /* 4px spacing scale */
@@ -47,9 +37,6 @@
        change to the bar rows. */
     --bar-h: 108px;
   }
-  :root[data-theme="light"] { color-scheme: light; }
-  :root[data-theme="dark"] { color-scheme: dark; }
-
   * { box-sizing: border-box; }
 
   html {
@@ -70,7 +57,7 @@
     -webkit-text-size-adjust: 100%;
   }
 
-  /* Page head: title plus the two at-home actions (copy, theme). Deliberately
+  /* Page head: title plus the at-home copy action. Deliberately
      NOT sticky since 2026-08-12. It used to be the sticky bar's first row,
      which cost 145px of a phone screen for controls nobody touches in a
      store; scrolling it away leaves two sticky rows at ~100px. */
@@ -127,7 +114,6 @@
      All pill-radius, all same border weight, so the whole bar reads as one
      instrument panel instead of three unrelated widgets. */
   .toggle,
-  .icon-btn,
   .copy-btn {
     position: relative;
     appearance: none;
@@ -142,7 +128,6 @@
     transition: background-color 150ms, color 150ms, border-color 150ms;
   }
   .toggle::before,
-  .icon-btn::before,
   .copy-btn::before,
   .sizes a::before {
     content: "";
@@ -158,19 +143,6 @@
     border-color: var(--ink);
     color: var(--paper);
   }
-  .icon-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    padding: 0;
-    flex-shrink: 0;
-  }
-  .icon-btn svg { display: none; }
-  .icon-btn[data-mode="auto"] .ic-auto,
-  .icon-btn[data-mode="light"] .ic-light,
-  .icon-btn[data-mode="dark"] .ic-dark { display: block; }
-  .icon-btn:active,
   .toggle:not([aria-pressed="true"]):active { background: var(--wash); }
   /* Ownership filter: one segmented pill in the same control vocabulary
      (36px visual, 13px/600, idle paper + ink, active ink + paper). All three
@@ -215,7 +187,6 @@
     outline: 2px solid var(--accent);
     outline-offset: -2px;
   }
-  .icon-btn:focus-visible,
   .toggle:focus-visible,
   .sizes a:focus-visible {
     outline: 2px solid var(--accent);
@@ -270,7 +241,7 @@
     outline-offset: 2px;
   }
   /* Dirty state: a small accent dot on the copy button's corner (the action
-     that resolves it), with a paper ring so it stays visible on any theme.
+     that resolves it), with a paper ring so it stays visible on the chrome.
      The accessible name change rides on aria-label in updateDirtyIndicator. */
   .copy-btn.dirty::after {
     content: "";
@@ -353,10 +324,16 @@
     grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
   }
 
-  /* Swatch: owned = filled pigment chip, missing = hollow chip ringed in the
-     same pigment. Fill vs no fill is the state channel, so it survives any
-     pigment, any theme and any viewing distance, and the color itself stays
-     true in both states. */
+  /* Swatch: one kind of chip, a filled block of the exact posca.com hex.
+     Owned and missing render identically on purpose (2026-08-13). The
+     ownership filter already says which set you are looking at, so a per-chip
+     mark in the Owned or Missing view would repeat the same fact on every
+     chip. Only the All view could use a distinction; that is still open, and
+     until it is decided the per-size counter ("4 of 21") carries it.
+     Earlier attempts at a per-chip state channel are all gone: the neutral
+     wash (lied about the color), the hollow ring, and the tone-based ink dot
+     (an exception that needed explaining). Do not reintroduce one without
+     deciding the All view first. */
   .sw {
     position: relative;
     display: block;
@@ -392,41 +369,6 @@
     transition: transform 120ms cubic-bezier(0.16, 1, 0.3, 1);
   }
   .sw:active .chip { transform: scale(0.92); }
-  /* Near-paper pigments are the one case fill-vs-hollow cannot carry on its
-     own: when the pigment equals the page surface, both states render as an
-     outlined box. White, Ivory and Sunshine Yellow hit that in light; Black,
-     Navy Blue and Prussian Blue hit it in dark. Those chips, and only those
-     (31 of 230, of which the owned ones show a mark), keep a small ink dot.
-     Per theme it fires on one tone group, so at most a dozen dots are on
-     screen instead of one on every owned chip. */
-  .sw.owned .chip::after {
-    content: "";
-    position: absolute;
-    top: 4px;
-    right: 4px;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: var(--ink);
-    display: none;
-  }
-  .sw.owned[data-tone="pale"] .chip::after { display: block; }
-  :root[data-theme="dark"] .sw.owned[data-tone="pale"] .chip::after { display: none; }
-  :root[data-theme="dark"] .sw.owned[data-tone="deep"] .chip::after { display: block; }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .sw.owned[data-tone="pale"] .chip::after { display: none; }
-    :root:not([data-theme="light"]) .sw.owned[data-tone="deep"] .chip::after { display: block; }
-  }
-  /* Hollow state: paper interior, pigment ring, hairline on the outer edge so
-     pigments close to the page surface (White on light, Black on dark) still
-     have a boundary. The check badge the wash design needed is gone: filled
-     vs hollow no longer needs a second marker to be legible. */
-  .sw.missing .chip {
-    background: var(--paper);
-    box-shadow:
-      inset 0 0 0 1px var(--chip-edge),
-      inset 0 0 0 var(--ring) var(--c);
-  }
 
   /* Label area: collapsed entirely when both toggles are off (pure dense
      color grid). Each visible line has a fixed height (number 14px, name a
@@ -444,8 +386,6 @@
     text-align: center;
     color: var(--ink);
   }
-  .sw.missing .sw-num,
-  .sw.missing .sw-name { color: var(--muted); }
   body[data-show-number] .sw-num { display: block; }
   .sw-num {
     font: 500 11px/14px var(--mono);
@@ -470,34 +410,12 @@
   }
   body[data-show-name] .sw-name { display: -webkit-box; }
 </style>
-<script>
-  // Apply a stored manual theme before first paint (auto = no attribute).
-  try {
-    var storedTheme = localStorage.getItem("posca-theme");
-    if (storedTheme === "light" || storedTheme === "dark") {
-      document.documentElement.dataset.theme = storedTheme;
-    }
-  } catch (e) { /* private mode */ }
-</script>
 </head>
 <body>
   <div class="page-head">
     <h1>Posca inventory</h1>
     <div class="page-head-actions">
       <button type="button" id="copy-btn" class="copy-btn">Copy updated list</button>
-      <button type="button" id="theme-btn" class="icon-btn" data-mode="auto">
-        <svg class="ic-auto" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-          <circle cx="12" cy="12" r="9"></circle>
-          <path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"></path>
-        </svg>
-        <svg class="ic-light" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"></circle>
-          <path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"></path>
-        </svg>
-        <svg class="ic-dark" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11z"></path>
-        </svg>
-      </button>
     </div>
     <span id="copy-status" class="copy-status" aria-live="polite"></span>
   </div>
@@ -532,14 +450,12 @@
       number: { number: true, name: false }, nummer: { number: true, name: false },
       name: { number: false, name: true }, naam: { number: false, name: true }
     };
-    var THEMES = ["auto", "light", "dark"];
     // In-store quick filter over ownership. Persisted since 2026-08-12 at
     // Philip's request: a reload keeps the last chosen filter. The 2026-07-23
     // rebuild spec had it reset to "all" on every load; that is superseded.
     var OWN_FILTERS = ["all", "owned", "missing"];
     var OWN_FILTER_KEY = "posca-own-filter";
     var ownFilter = "all";
-    var THEME_KEY = "posca-theme";
     var LS_KEY = "posca-inventory-local";
     var INVENTORY_HEADER = [
       '// Owned markers as lineup.js color keys ("SIZE:Color Name", duplicate names',
@@ -659,17 +575,6 @@
       });
     }
 
-    // Flags pigments that sit within a hair of one theme's page surface, so
-    // the CSS can put an owned mark on exactly those chips (see .chip::after).
-    function tone(hex) {
-      var lin = [1, 3, 5].map(function (i) {
-        var v = parseInt(hex.slice(i, i + 2), 16) / 255;
-        return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-      });
-      var l = 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2];
-      return l > 0.8 ? "pale" : l < 0.045 ? "deep" : "mid";
-    }
-
     // Spectrum sort: greys/browns first by lightness, then hue (spec-fixed).
     function spectrumKey(hex) {
       const r = parseInt(hex.slice(1, 3), 16) / 255,
@@ -776,35 +681,6 @@
       if (target) target.scrollIntoView({ behavior: "instant" });
     }
 
-    function getStoredTheme() {
-      try {
-        var t = localStorage.getItem(THEME_KEY);
-        return THEMES.indexOf(t) !== -1 ? t : "auto";
-      } catch (e) {
-        return "auto";
-      }
-    }
-
-    function nextTheme(theme) {
-      return THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length];
-    }
-
-    function setTheme(theme) {
-      if (theme === "auto") {
-        delete document.documentElement.dataset.theme;
-      } else {
-        document.documentElement.dataset.theme = theme;
-      }
-      try { localStorage.setItem(THEME_KEY, theme); } catch (e) { /* private mode */ }
-      var btn = document.getElementById("theme-btn");
-      if (btn) {
-        btn.dataset.mode = theme;
-        var text = "Theme: " + theme + ". Tap for " + nextTheme(theme) + ".";
-        btn.setAttribute("aria-label", text);
-        btn.title = text;
-      }
-    }
-
     function el(tag, className, text) {
       var node = document.createElement(tag);
       if (className) node.className = className;
@@ -878,7 +754,6 @@
             sw.dataset.key = color.key;
             sw.title = color.name + (color.number !== null ? " (" + color.number + ")" : "");
             sw.setAttribute("aria-pressed", String(isOwned));
-            sw.dataset.tone = tone(color.hex);
             sw.style.setProperty("--c", color.hex);
             sw.addEventListener("click", function () { toggleKey(color.key); });
 
@@ -916,13 +791,9 @@
     document.querySelectorAll("[data-filter-btn]").forEach(function (btn) {
       btn.addEventListener("click", function () { setOwnFilter(btn.dataset.filterBtn); });
     });
-    document.getElementById("theme-btn").addEventListener("click", function () {
-      setTheme(nextTheme(document.getElementById("theme-btn").dataset.mode));
-    });
     document.getElementById("copy-btn").addEventListener("click", copyInventory);
 
     setLabels(getStoredLabels());
-    setTheme(getStoredTheme());
     ownFilter = getStoredOwnFilter();
     syncFilterButtons();
     buildNav();
